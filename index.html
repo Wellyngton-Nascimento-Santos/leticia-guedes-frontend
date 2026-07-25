@@ -555,6 +555,14 @@
 
       <sc-if value="{{ searchNotActive }}" hint-placeholder-val="{{ true }}">
       <sc-if value="{{ hasBlockedSlots }}" hint-placeholder-val="{{ false }}">
+      <sc-if value="{{ hasMultipleBlockedSlots }}" hint-placeholder-val="{{ false }}">
+      <div style="display:flex;justify-content:flex-end;margin-bottom:8px">
+        <button sc-camel-on-click="{{ unblockAllSlots }}" class="lgb-btn" style="{{ unblockAllBtnStyle }}">{{ unblockAllBtnLabel }}</button>
+      </div>
+      </sc-if>
+      <sc-if value="{{ unblockAllError }}" hint-placeholder-val="{{ false }}">
+      <div style="font-size:12px;font-weight:600;color:#C0504D;background:#FBEAEA;border-radius:8px;padding:9px 12px;margin-bottom:8px">{{ unblockAllError }}</div>
+      </sc-if>
       <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px">
         <sc-for list="{{ blockedSlotsList }}" as="bs" hint-placeholder-count="2">
           <div style="background:#FBEAEA;border:1px solid rgba(192,80,77,.25);border-radius:12px;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
@@ -748,6 +756,17 @@
         </div>
         <label style="font-size:11px;font-weight:600;color:#6E3A47;display:block;margin-bottom:6px">Motivo (opcional)</label>
         <input value="{{ blockSlotReason }}" sc-camel-on-input="{{ onBlockSlotReasonInput }}" placeholder="Ex: Compromisso pessoal" style="{{ inputStyle }};margin-bottom:14px">
+        <sc-if value="{{ blockSlotHasConflictWarning }}" hint-placeholder-val="{{ false }}">
+        <div style="font-size:12.5px;font-weight:600;color:#C0504D;background:#FBEAEA;border:1px solid rgba(192,80,77,.25);border-radius:10px;padding:12px 14px;margin-bottom:10px;line-height:1.55">⚠️ Atenção: existem {{ blockSlotConflictCountLabel }} nesse horário. Bloquear NÃO cancela automaticamente — você precisará entrar em contato com a(s) cliente(s) manualmente.</div>
+        <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:14px">
+          <sc-for list="{{ blockSlotConflictList }}" as="bc" hint-placeholder-count="2">
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;background:#FBF2F1;border:1px solid rgba(110,58,71,.08);border-radius:9px;padding:8px 10px">
+              <span style="font-size:12.5px;color:#43333A;min-width:0"><strong style="color:#6E3A47">{{ bc.time }}</strong> · {{ bc.client }}</span>
+              <a href="{{ bc.waLink }}" target="_blank" class="lgb-btn" style="flex-shrink:0;font-size:11px;font-weight:600;color:#4A8C6F;background:#EAF3EE;padding:7px 12px;border-radius:999px">WhatsApp</a>
+            </div>
+          </sc-for>
+        </div>
+        </sc-if>
         <sc-if value="{{ blockSlotActionError }}" hint-placeholder-val="{{ false }}">
         <div style="font-size:12px;font-weight:600;color:#C0504D;background:#FBEAEA;border-radius:8px;padding:9px 12px;margin-bottom:14px">{{ blockSlotActionError }}</div>
         </sc-if>
@@ -1022,7 +1041,7 @@ class Component extends DCLogic {
     blockedDays: [], blockedDaysLoaded: false,
     blockConfirmOpen: false, blockReason: '', blockConfirmedCount: null, blockConfirmedAppts: [], blockCheckLoading: false, blockActionLoading: false, blockActionError: null,
     unblockConfirmOpen: false, unblockLoading: false, unblockError: null,
-    blockedSlots: [], blockedSlotsDate: null,
+    blockedSlots: [], blockedSlotsDate: null, unblockAllLoading: false, unblockAllError: null,
     blockSlotConfirmOpen: false, blockSlotTimeFrom: '', blockSlotTimeTo: '', blockSlotReason: '', blockSlotActionLoading: false, blockSlotActionError: null,
     unblockSlotLoadingId: null,
     cancelTarget: null, cancelError: null, cancelLoading: false,
@@ -1265,6 +1284,7 @@ class Component extends DCLogic {
   onBlockSlotTimeToInput(v) { this.setState({ blockSlotTimeTo: v }); }
   onBlockSlotReasonInput(v) { this.setState({ blockSlotReason: v }); }
   async confirmBlockSlot() {
+    if (this.state.blockSlotActionLoading) return;
     const dateKey = this.state.adminDate;
     if (!this.state.blockSlotTimeFrom || !this.state.blockSlotTimeTo) { this.setState({ blockSlotActionError: 'Escolha o horário de início e fim.' }); return; }
     if (this.state.blockSlotTimeTo <= this.state.blockSlotTimeFrom) { this.setState({ blockSlotActionError: 'O horário final deve ser depois do inicial.' }); return; }
@@ -1285,6 +1305,20 @@ class Component extends DCLogic {
     this.setState({ unblockSlotLoadingId: null });
     if (r.ok) this.loadBlockedSlots(this.state.adminDate);
   }
+  async unblockAllSlots() {
+    if (this.state.unblockAllLoading) return;
+    const dateKey = this.state.adminDate;
+    const ids = (this.state.blockedSlotsDate === dateKey ? (this.state.blockedSlots || []) : []).map((b) => b.id);
+    if (!ids.length) return;
+    this.setState({ unblockAllLoading: true, unblockAllError: null });
+    let hadError = false;
+    for (const id of ids) {
+      const r = await this.adminFetch('/api/admin/blocked-slots/' + id, { method: 'DELETE' });
+      if (!r.ok) hadError = true;
+    }
+    this.setState({ unblockAllLoading: false, unblockAllError: hadError ? 'Alguns horários não puderam ser desbloqueados. Tente novamente.' : null });
+    this.loadBlockedSlots(dateKey);
+  }
 
   openBlockConfirm() {
     this.setState({ blockConfirmOpen: true, blockReason: '', blockConfirmedCount: null, blockConfirmedAppts: [], blockCheckLoading: true, blockActionError: null });
@@ -1304,6 +1338,7 @@ class Component extends DCLogic {
   closeBlockConfirm() { this.setState({ blockConfirmOpen: false }); }
   onBlockReasonInput(v) { this.setState({ blockReason: v }); }
   async confirmBlockDay() {
+    if (this.state.blockActionLoading) return;
     const dateKey = this.state.adminDate;
     this.setState({ blockActionLoading: true, blockActionError: null });
     const body = { date: dateKey };
@@ -1835,6 +1870,19 @@ class Component extends DCLogic {
       id: b.id, time: b.time || (b.startTime && b.endTime ? (b.startTime + ' – ' + b.endTime) : b.startTime) || '', reason: b.reason || '',
       unblock: () => this.unblockSlot(b.id),
     })).sort((x, y) => (x.time || '').localeCompare(y.time || ''));
+    const unblockAllBtnStyle = 'cursor:' + (s.unblockAllLoading ? 'not-allowed' : 'pointer') + ';border:1px solid rgba(192,80,77,.35);background:#fff;color:#C0504D;font-size:11.5px;font-weight:600;padding:8px 14px;border-radius:999px;opacity:' + (s.unblockAllLoading ? '.6' : '1');
+    const unblockAllBtnLabel = s.unblockAllLoading ? 'Desbloqueando...' : 'Desbloquear todos';
+    const blockSlotConflictAppts = (s.blockSlotTimeFrom && s.blockSlotTimeTo && s.blockSlotTimeTo > s.blockSlotTimeFrom)
+      ? (s.adminAppts || []).filter((a) => a.status === 'confirmado' && this.spTime(a.startAt) >= s.blockSlotTimeFrom && this.spTime(a.startAt) < s.blockSlotTimeTo)
+      : [];
+    const blockSlotHasConflictWarning = blockSlotConflictAppts.length > 0;
+    const blockSlotConflictCountLabel = blockSlotConflictAppts.length + (blockSlotConflictAppts.length === 1 ? ' agendamento confirmado' : ' agendamentos confirmados');
+    const blockSlotConflictList = blockSlotConflictAppts.map((a) => ({
+      id: a.id,
+      time: this.spTime(a.startAt),
+      client: a.clientName || a.client || '—',
+      waLink: 'https://wa.me/' + (a.clientPhone || a.phone || '').replace(/\D/g, ''),
+    })).sort((x, y) => x.time.localeCompare(y.time));
     const blockSlotConfirmBtnStyle = 'cursor:pointer;border:0;background:#C0504D;color:#fff;padding:11px 18px;border-radius:999px;font-family:Montserrat,sans-serif;font-weight:600;font-size:12.5px' + (s.blockSlotActionLoading ? ';opacity:.6' : '');
     const blockSlotConfirmBtnLabel = s.blockSlotActionLoading ? 'Bloqueando...' : 'Bloquear horário';    const blockHasConfirmedWarning = !s.blockCheckLoading && s.blockConfirmedCount != null && s.blockConfirmedCount > 0;
     const blockConfirmedCountLabel = blockConfirmedCount + (blockConfirmedCount === 1 ? ' agendamento' : ' agendamentos');
@@ -2092,12 +2140,16 @@ class Component extends DCLogic {
       openBlockConfirm: () => this.openBlockConfirm(),
       closeBlockConfirm: () => this.closeBlockConfirm(),
       blockedSlotsList, hasBlockedSlots: blockedSlotsList.length > 0,
+      hasMultipleBlockedSlots: blockedSlotsList.length > 1,
+      unblockAllSlots: () => this.unblockAllSlots(), unblockAllBtnStyle, unblockAllBtnLabel,
+      unblockAllError: s.unblockAllError,
       openBlockSlotConfirm: () => this.openBlockSlotConfirm(),
       closeBlockSlotConfirm: () => this.closeBlockSlotConfirm(),
       blockSlotConfirmOpen: s.blockSlotConfirmOpen,
       blockSlotTimeFrom: s.blockSlotTimeFrom, onBlockSlotTimeFromInput: (e) => this.onBlockSlotTimeFromInput(e.target.value),
       blockSlotTimeTo: s.blockSlotTimeTo, onBlockSlotTimeToInput: (e) => this.onBlockSlotTimeToInput(e.target.value),
       blockSlotReason: s.blockSlotReason, onBlockSlotReasonInput: (e) => this.onBlockSlotReasonInput(e.target.value),
+      blockSlotHasConflictWarning, blockSlotConflictCountLabel, blockSlotConflictList,
       blockSlotActionError: s.blockSlotActionError,
       confirmBlockSlot: () => this.confirmBlockSlot(),
       blockSlotConfirmBtnStyle, blockSlotConfirmBtnLabel,
