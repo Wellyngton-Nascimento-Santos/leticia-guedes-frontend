@@ -230,7 +230,7 @@
     </div>
     <p data-reveal="" style="{{ revStyle }};text-align:center;font-size:13px;color:#8A7078;margin:0 auto 40px;max-width:480px">Agendamentos pelo site precisam ser feitos com no mínimo <strong style="color:#C56B82">48h de antecedência</strong>. Para horários mais próximos, <a href="https://wa.me/5511960537392?text=Oi%20Let%C3%ADcia!%20Preciso%20de%20um%20hor%C3%A1rio%20mais%20pr%C3%B3ximo%20do%20que%2048h%2C%20voc%C3%AA%20tem%20disponibilidade%3F" target="_blank" style="color:#C56B82;font-weight:600;text-decoration:underline">fale no WhatsApp</a>.</p>
     <div data-reveal="" style="{{ revStyle }};display:flex;justify-content:center;margin:-24px 0 40px">
-      <span style="display:inline-flex;align-items:center;gap:7px;font-size:12px;font-weight:600;letter-spacing:.02em;color:#6E3A47;background:rgba(197,107,130,.1);border:1px solid rgba(197,107,130,.25);border-radius:999px;padding:8px 18px">Atendimento de terça a sábado.</span>
+      <span style="display:inline-flex;align-items:center;gap:7px;font-size:12px;font-weight:600;letter-spacing:.02em;color:#6E3A47;background:rgba(197,107,130,.1);border:1px solid rgba(197,107,130,.25);border-radius:999px;padding:8px 18px">{{ attendanceRangeLabel }}</span>
     </div>
 
     <div class="lgb-hoverlift" style="background:#fff;border:1px solid rgba(110,58,71,.08);border-radius:16px;box-shadow:0 30px 70px -40px rgba(110,58,71,.4);overflow:hidden">
@@ -313,7 +313,7 @@
         <div style="animation:lgbFadeUp .4s ease">
           <div style="font-size:12px;font-weight:600;letter-spacing:.05em;color:#6E3A47;margin-bottom:12px">Escolha a data</div>
           <div style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:28px">
-            <sc-for list="{{ bookingDates }}" as="d" hint-placeholder-count="4">
+            <sc-for list="{{ bookingDates }}" as="d" hint-placeholder-count="30">
               <button sc-camel-on-click="{{ d.pick }}" class="lgb-btn" style="{{ d.style }}"><span style="font-size:10px;text-transform:uppercase;letter-spacing:.12em;opacity:.7">{{ d.dow }}</span><span style="font-family:'Cormorant Garamond',serif;font-size:22px;font-weight:600;line-height:1">{{ d.day }}</span><span style="font-size:10px;opacity:.7">{{ d.mon }}</span></button>
             </sc-for>
           </div>
@@ -694,6 +694,35 @@
     </div>
     </sc-if>
 
+    <sc-if value="{{ adminTabExtras }}" hint-placeholder-val="{{ false }}">
+    <div style="padding:20px 20px 100px">
+      <sc-if value="{{ settingsLoading }}" hint-placeholder-val="{{ true }}">
+      <div style="padding:60px 0;text-align:center;font-size:13px;color:#8A7078">Carregando configurações...</div>
+      </sc-if>
+      <sc-if value="{{ settingsError }}" hint-placeholder-val="{{ false }}">
+      <div style="font-size:12.5px;font-weight:600;color:#C0504D;background:#FBEAEA;border:1px solid rgba(192,80,77,.25);border-radius:10px;padding:12px 14px;margin-bottom:14px">{{ settingsError }}</div>
+      </sc-if>
+      <sc-if value="{{ extrasReady }}" hint-placeholder-val="{{ false }}">
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <div style="background:#fff;border:1px solid rgba(110,58,71,.08);border-radius:14px;padding:16px;display:flex;align-items:center;justify-content:space-between;gap:12px;box-shadow:0 8px 20px -16px rgba(110,58,71,.35)">
+          <div>
+            <div style="font-size:14px;font-weight:600;color:#43333A">Atender também às segundas-feiras</div>
+            <div style="font-size:11.5px;color:#8A7078;margin-top:2px">Usa os mesmos horários e vagas dos dias normais.</div>
+          </div>
+          <button sc-camel-on-click="{{ toggleSegunda }}" class="lgb-btn" style="{{ segundaSwitchStyle }}"><span style="{{ switchKnobStyle }}"></span></button>
+        </div>
+        <div style="background:#fff;border:1px solid rgba(110,58,71,.08);border-radius:14px;padding:16px;display:flex;align-items:center;justify-content:space-between;gap:12px;box-shadow:0 8px 20px -16px rgba(110,58,71,.35)">
+          <div>
+            <div style="font-size:14px;font-weight:600;color:#43333A">Atender também aos domingos</div>
+            <div style="font-size:11.5px;color:#8A7078;margin-top:2px">Usa os mesmos horários e vagas dos dias normais.</div>
+          </div>
+          <button sc-camel-on-click="{{ toggleDomingo }}" class="lgb-btn" style="{{ domingoSwitchStyle }}"><span style="{{ switchKnobStyle }}"></span></button>
+        </div>
+      </div>
+      </sc-if>
+    </div>
+    </sc-if>
+
     <div style="position:fixed;left:0;right:0;bottom:0;z-index:150;display:flex;justify-content:center;pointer-events:none">
       <div style="width:100%;max-width:560px;background:#fff;border-top:1px solid rgba(110,58,71,.08);box-shadow:0 -10px 30px -18px rgba(110,58,71,.35);display:flex;pointer-events:auto">
         <button sc-camel-on-click="{{ goAdminTabAgenda }}" class="lgb-btn" style="{{ navAgendaStyle }}">
@@ -707,6 +736,10 @@
         <button sc-camel-on-click="{{ goAdminTabServicos }}" class="lgb-btn" style="{{ navServicosStyle }}">
           <span style="font-size:20px;line-height:1">{{ navServicosIcon }}</span>
           <span style="font-size:10px;font-weight:700;letter-spacing:.02em;margin-top:4px">Serviços</span>
+        </button>
+        <button sc-camel-on-click="{{ goAdminTabExtras }}" class="lgb-btn" style="{{ navExtrasStyle }}">
+          <span style="font-size:20px;line-height:1">{{ navExtrasIcon }}</span>
+          <span style="font-size:10px;font-weight:700;letter-spacing:.02em;margin-top:4px">Extras</span>
         </button>
       </div>
     </div>
@@ -1023,6 +1056,7 @@ class Component extends DCLogic {
     bModeGateOpen: false,
     bMaxWarn: false, bDaySuggestion: null,
     bApiServices: [], bApiLoading: true, bApiError: null,
+    businessHours: { atenderSegunda: false, atenderDomingo: false }, businessHoursLoaded: false,
     bSlots: [], bAvailLoading: false, bAvailError: null,
     bConfirmLoading: false, bConfirmError: null, bConfirmShowWhats: false, bResult: null,
     catOpen: { cilios: false, brow: false },
@@ -1036,6 +1070,8 @@ class Component extends DCLogic {
     adminDate: null,
     adminAppts: [], adminLoading: false, adminError: null,
     adminTab: 'agenda',
+    settings: null, settingsLoaded: false, settingsLoading: false, settingsError: null,
+    settingsSavingSegunda: false, settingsSavingDomingo: false,
     nextDaysSummary: [],
     searchQuery: '', searchActive: false, searchResults: [], searchLoading: false, searchError: null,
     blockedDays: [], blockedDaysLoaded: false,
@@ -1055,13 +1091,14 @@ class Component extends DCLogic {
     this._loaderT2 = setTimeout(() => this.setState({ loaded: true }), 2700);
     this._sobreTimer = setInterval(() => this.advanceSobre(), 5000);
     this.loadServices();
+    this.loadBusinessHours();
     const savedToken = (() => { try { return localStorage.getItem('lgb_admin_token'); } catch (e) { return null; } })();
     const today = this.spToday();
     this.setState({ adminToken: savedToken || null, adminDate: today });
     this.applyRouteFromHash();
     const h = (window.location.hash || '').toLowerCase();
     const isAdminRoute = h === '#/painel' || h === '#/admin' || h.startsWith('#/painel/') || h.startsWith('#/admin/');
-    if (isAdminRoute && savedToken) { this.loadAdminAppointments(today); this.loadBlockedDays(); }
+    if (isAdminRoute && savedToken) { this.loadAdminAppointments(today); this.loadBlockedDays(); this.loadSettings(); }
     this._onHashChange = () => { this.applyRouteFromHash(); this.ensureAdminData(); };
     window.addEventListener('hashchange', this._onHashChange);
     this.setupReveal();
@@ -1147,6 +1184,15 @@ class Component extends DCLogic {
       };
     });
     this.setState({ bApiServices: services, bApiLoading: false });
+  }
+
+  async loadBusinessHours() {
+    const r = await this.fetchJSON(API_BASE + '/api/business-hours');
+    if (r.ok && r.data) {
+      this.setState({ businessHours: { atenderSegunda: !!r.data.atenderSegunda, atenderDomingo: !!r.data.atenderDomingo }, businessHoursLoaded: true });
+      return;
+    }
+    this.setState({ businessHoursLoaded: true });
   }
 
   async fetchAvailability(dateKey, serviceIds) {
@@ -1263,6 +1309,28 @@ class Component extends DCLogic {
   ensureAdminData() {
     if (this.state.view === 'admin' && this.state.adminToken && this.state.adminDate) this.loadAdminAppointments(this.state.adminDate);
     if (this.state.view === 'admin' && this.state.adminToken && !this.state.blockedDaysLoaded) this.loadBlockedDays();
+    if (this.state.view === 'admin' && this.state.adminToken && !this.state.settingsLoaded) this.loadSettings();
+  }
+
+  async loadSettings() {
+    this.setState({ settingsLoaded: true, settingsLoading: true, settingsError: null });
+    const r = await this.adminFetch('/api/admin/settings');
+    if (r.ok && r.data) this.setState({ settings: r.data, settingsLoading: false });
+    else this.setState({ settingsLoading: false, settingsError: 'Não foi possível carregar as configurações.' });
+  }
+  async toggleSetting(key) {
+    const cur = this.state.settings;
+    if (!cur) return;
+    const savingFlag = key === 'atenderSegunda' ? 'settingsSavingSegunda' : 'settingsSavingDomingo';
+    if (this.state[savingFlag]) return;
+    this.setState({ [savingFlag]: true, settingsError: null });
+    const body = { ...cur, [key]: !cur[key] };
+    const r = await this.adminFetch('/api/admin/settings', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+    if (r.ok) {
+      this.setState({ [savingFlag]: false, settings: (r.data && typeof r.data === 'object') ? r.data : body });
+      return;
+    }
+    this.setState({ [savingFlag]: false, settingsError: 'Não foi possível salvar. Tente novamente.' });
   }
 
   async loadBlockedDays() {
@@ -1544,6 +1612,7 @@ class Component extends DCLogic {
       else this.setState({ adminLoading: false, adminError: 'Não foi possível carregar a agenda. Tente novamente em instantes.' });
       this.loadBlockedDays();
       this.loadBlockedSlots(dateKey);
+      this.loadSettings();
       return;
     }
     const msg = (r.data && r.data.message) || 'Não foi possível entrar. Tente novamente em instantes.';
@@ -1784,13 +1853,21 @@ class Component extends DCLogic {
     const selectedNames = selectedServiceObjs.map((x) => x.name).join(' + ');
     const dowNames = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
     const monNames = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
+    const attendanceRangeLabel = (s.businessHours.atenderSegunda && s.businessHours.atenderDomingo) ? 'Atendimento de segunda a domingo.'
+      : s.businessHours.atenderSegunda ? 'Atendimento de segunda a sábado.'
+      : s.businessHours.atenderDomingo ? 'Atendimento de terça a domingo.'
+      : 'Atendimento de terça a sábado.';
     const cutoff = new Date(Date.now() + 48 * 3600 * 1000);
     const dates = [];
     let cursor = new Date(cutoff.getFullYear(), cutoff.getMonth(), cutoff.getDate());
-    while (dates.length < 4) {
-      if (cursor.getDay() !== 0) {
+    const allowSunday = !!s.businessHours.atenderDomingo;
+    const allowMonday = !!s.businessHours.atenderSegunda;
+    while (dates.length < 30) {
+      const dow0 = cursor.getDay();
+      const closed = (dow0 === 0 && !allowSunday) || (dow0 === 1 && !allowMonday);
+      if (!closed) {
         const key = cursor.getFullYear() + '-' + String(cursor.getMonth() + 1).padStart(2, '0') + '-' + String(cursor.getDate()).padStart(2, '0');
-        const dow = dowNames[cursor.getDay()];
+        const dow = dowNames[dow0];
         dates.push({ key, dow, day: String(cursor.getDate()).padStart(2, '0'), mon: monNames[cursor.getMonth()], label: dow + ', ' + cursor.getDate() + ' de ' + monNames[cursor.getMonth()] });
       }
       cursor = new Date(cursor.getFullYear(), cursor.getMonth(), cursor.getDate() + 1);
@@ -2034,7 +2111,7 @@ class Component extends DCLogic {
 
       // booking
       steps, isStep1NoGate: s.bStep === 1 && !s.bModeGateOpen, isModeGate: s.bStep === 1 && s.bModeGateOpen, isStep2: s.bStep === 2, isStep3: s.bStep === 3,
-      bookingServices, bookingDates, bookingTimes, modeGateServices,
+      bookingServices, bookingDates, bookingTimes, modeGateServices, attendanceRangeLabel,
       next, prev, nextStyle, backStyle, confirmStyle, confirmLabel,
       bMaxWarn: s.bMaxWarn, hasSelectedServices, selectedNames, totalPriceLabel, totalDurLabel,
       bApiLoading: s.bApiLoading, bApiError: s.bApiError, bApiReady,
@@ -2083,17 +2160,26 @@ class Component extends DCLogic {
       adminDateInputVal: s.adminDate || '', onAdminDatePick: (e) => this.onAdminDatePick(e.target.value),
 
       // bottom nav
-      navAgendaStyle: 'flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:11px 0 9px;cursor:pointer;border:0;background:transparent;color:' + (s.adminTab !== 'servicos' ? '#C56B82' : '#A8949B'),
+      navAgendaStyle: 'flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:11px 0 9px;cursor:pointer;border:0;background:transparent;color:' + (s.adminTab === 'agenda' ? '#C56B82' : '#A8949B'),
       navServicosStyle: 'flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:11px 0 9px;cursor:pointer;border:0;background:transparent;color:' + (s.adminTab === 'servicos' ? '#C56B82' : '#A8949B'),
+      navExtrasStyle: 'flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:11px 0 9px;cursor:pointer;border:0;background:transparent;color:' + (s.adminTab === 'extras' ? '#C56B82' : '#A8949B'),
       navNovoStyle: 'flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:11px 0 9px;cursor:pointer;border:0;background:transparent;color:#A8949B',
-      navAgendaIcon: '🗓️', navServicosIcon: '💅',
+      navAgendaIcon: '🗓️', navServicosIcon: '💅', navExtrasIcon: '⚙️',
 
       // admin tabs
-      adminTab: s.adminTab, adminTabAgenda: s.adminTab !== 'servicos', adminTabServicos: s.adminTab === 'servicos',
-      adminTabHint: s.adminTab === 'servicos' ? 'Serviços' : this.dateKeyLabel(s.adminDate),
-      goAdminTabAgenda: () => this.goAdminTab('agenda'), goAdminTabServicos: () => this.goAdminTab('servicos'),
+      adminTab: s.adminTab, adminTabAgenda: s.adminTab === 'agenda', adminTabServicos: s.adminTab === 'servicos', adminTabExtras: s.adminTab === 'extras',
+      adminTabHint: s.adminTab === 'servicos' ? 'Serviços' : (s.adminTab === 'extras' ? 'Extras' : this.dateKeyLabel(s.adminDate)),
+      goAdminTabAgenda: () => this.goAdminTab('agenda'), goAdminTabServicos: () => this.goAdminTab('servicos'), goAdminTabExtras: () => this.goAdminTab('extras'),
       tabAgendaStyle: 'cursor:pointer;border:0;font-size:12px;font-weight:600;padding:8px 16px;border-radius:999px;' + (s.adminTab !== 'servicos' ? 'background:#C56B82;color:#fff' : 'background:#F3E9EA;color:#8A7078'),
       tabServicosStyle: 'cursor:pointer;border:0;font-size:12px;font-weight:600;padding:8px 16px;border-radius:999px;' + (s.adminTab === 'servicos' ? 'background:#C56B82;color:#fff' : 'background:#F3E9EA;color:#8A7078'),
+
+      // extras tab
+      settingsLoading: s.settingsLoading, settingsError: s.settingsError,
+      extrasReady: !!s.settings && !s.settingsLoading,
+      segundaSwitchStyle: 'cursor:' + (s.settingsSavingSegunda ? 'not-allowed' : 'pointer') + ';border:0;width:44px;height:25px;border-radius:999px;padding:2px;display:flex;background:' + ((s.settings && s.settings.atenderSegunda) ? '#C56B82' : '#E1D2D4') + ';justify-content:' + ((s.settings && s.settings.atenderSegunda) ? 'flex-end' : 'flex-start') + ';opacity:' + (s.settingsSavingSegunda ? '.6' : '1'),
+      domingoSwitchStyle: 'cursor:' + (s.settingsSavingDomingo ? 'not-allowed' : 'pointer') + ';border:0;width:44px;height:25px;border-radius:999px;padding:2px;display:flex;background:' + ((s.settings && s.settings.atenderDomingo) ? '#C56B82' : '#E1D2D4') + ';justify-content:' + ((s.settings && s.settings.atenderDomingo) ? 'flex-end' : 'flex-start') + ';opacity:' + (s.settingsSavingDomingo ? '.6' : '1'),
+      switchKnobStyle: 'width:21px;height:21px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.2);display:block',
+      toggleSegunda: () => this.toggleSetting('atenderSegunda'), toggleDomingo: () => this.toggleSetting('atenderDomingo'),
 
       summaryTotal, summaryDone, summaryPending, nextDaysSummary,
       openNovo: () => this.openNovo(), closeNovo: () => this.closeNovo(),
