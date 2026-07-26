@@ -670,6 +670,12 @@
                 <div style="flex:1"><label style="{{ labelStyle }}">Duração mín. (min)</label><input value="{{ sv.dDurMin }}" sc-camel-on-input="{{ sv.onDurMin }}" type="number" style="{{ inputStyle }}"></div>
                 <div style="flex:1"><label style="{{ labelStyle }}">Duração máx. (min)</label><input value="{{ sv.dDurMax }}" sc-camel-on-input="{{ sv.onDurMax }}" type="number" style="{{ inputStyle }}"></div>
               </div>
+              <sc-if value="{{ sv.showManutDur }}" hint-placeholder-val="{{ false }}">
+              <div style="display:flex;gap:8px;margin-bottom:12px">
+                <div style="flex:1"><label style="{{ labelStyle }}">Duração manut. mín. (min)</label><input value="{{ sv.dManutDurMin }}" sc-camel-on-input="{{ sv.onManutDurMin }}" type="number" style="{{ inputStyle }}"></div>
+                <div style="flex:1"><label style="{{ labelStyle }}">Duração manut. máx. (min)</label><input value="{{ sv.dManutDurMax }}" sc-camel-on-input="{{ sv.onManutDurMax }}" type="number" style="{{ inputStyle }}"></div>
+              </div>
+              </sc-if>
               <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
                 <button sc-camel-on-click="{{ sv.onToggleActive }}" class="lgb-btn" style="{{ sv.switchStyle }}"><span style="{{ sv.knobStyle }}"></span></button>
                 <span style="font-size:12.5px;color:#43333A">{{ sv.activeLabel }}</span>
@@ -1552,7 +1558,10 @@ class Component extends DCLogic {
   editSvcAdmin(x) {
     this.setState({ svcAdminEditId: x.id, svcAdminSaveError: null, svcAdminDraft: {
       name: x.name, app: String(x.app), manut: x.manut == null ? '' : String(x.manut),
-      durMin: String(x.durMin), durMax: String(x.durMax), active: x.active !== false,
+      durMin: String(x.durMin), durMax: String(x.durMax),
+      manutDurMin: x.manutDurMin == null ? '' : String(x.manutDurMin),
+      manutDurMax: x.manutDurMax == null ? '' : String(x.manutDurMax),
+      active: x.active !== false,
     } });
   }
   cancelSvcAdminEdit() { this.setState({ svcAdminEditId: null, svcAdminDraft: null, svcAdminSaveError: null }); }
@@ -1568,6 +1577,10 @@ class Component extends DCLogic {
     if (manutVal !== orig.manut) body.maintenancePrice = manutVal;
     if (Number(d.durMin) !== orig.durMin) body.durationMinMinutes = Number(d.durMin);
     if (Number(d.durMax) !== orig.durMax) body.durationMaxMinutes = Number(d.durMax);
+    const manutDurMinVal = d.manutDurMin === '' ? null : Number(d.manutDurMin);
+    if (manutDurMinVal !== orig.manutDurMin) body.maintenanceDurationMinMinutes = manutDurMinVal;
+    const manutDurMaxVal = d.manutDurMax === '' ? null : Number(d.manutDurMax);
+    if (manutDurMaxVal !== orig.manutDurMax) body.maintenanceDurationMaxMinutes = manutDurMaxVal;
     if (d.active !== (orig.active !== false)) body.active = d.active;
     const r = await this.adminFetch('/api/admin/services/' + orig.id, {
       method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
@@ -2020,22 +2033,27 @@ class Component extends DCLogic {
       const editing = s.svcAdminEditId === x.id;
       const d = editing ? s.svcAdminDraft : null;
       const activeVal = editing ? d.active : (x.active !== false);
+      const cardHasManutDur = x.manut != null && x.manutDurMin != null;
       return {
         id: x.id, isEditing: editing, notEditing: !editing,
         cardStyle: 'background:#fff;border:1px solid rgba(110,58,71,.08);border-radius:14px;padding:14px 16px;box-shadow:0 6px 18px -14px rgba(110,58,71,.35)',
         name: editing ? d.name : x.name,
         priceLine: x.manut != null ? (this.fmt(x.app) + ' / ' + this.fmt(x.manut)) : this.fmt(x.app),
-        dur: svcDurLabel(x.durMin, x.durMax),
+        dur: cardHasManutDur ? (svcDurLabel(x.durMin, x.durMax) + ' · manut. ' + svcDurLabel(x.manutDurMin, x.manutDurMax)) : svcDurLabel(x.durMin, x.durMax),
         dimStyle: (x.active === false) ? 'opacity:.45' : '',
         activeTagLabel: (x.active === false) ? 'Inativo' : 'Ativo',
         activeTagStyle: 'font-size:9px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;padding:2px 8px;border-radius:999px;' + ((x.active === false) ? 'color:#A8949B;background:#F1E7E8' : 'color:#4A8C6F;background:#EAF3EE'),
         edit: () => this.editSvcAdmin(x),
         dName: editing ? d.name : '', dApp: editing ? d.app : '', dManut: editing ? d.manut : '', dDurMin: editing ? d.durMin : '', dDurMax: editing ? d.durMax : '',
+        dManutDurMin: editing ? d.manutDurMin : '', dManutDurMax: editing ? d.manutDurMax : '',
+        showManutDur: editing && d.manut !== '',
         onName: (e) => this.updateSvcDraft({ name: e.target.value }),
         onApp: (e) => this.updateSvcDraft({ app: e.target.value }),
         onManut: (e) => this.updateSvcDraft({ manut: e.target.value }),
         onDurMin: (e) => this.updateSvcDraft({ durMin: e.target.value }),
         onDurMax: (e) => this.updateSvcDraft({ durMax: e.target.value }),
+        onManutDurMin: (e) => this.updateSvcDraft({ manutDurMin: e.target.value }),
+        onManutDurMax: (e) => this.updateSvcDraft({ manutDurMax: e.target.value }),
         onToggleActive: () => this.updateSvcDraft({ active: !activeVal }),
         activeLabel: activeVal ? 'Ativo' : 'Inativo',
         switchStyle: 'cursor:pointer;border:0;width:40px;height:23px;border-radius:999px;padding:2px;display:flex;background:' + (activeVal ? '#C56B82' : '#E1D2D4') + ';justify-content:' + (activeVal ? 'flex-end' : 'flex-start'),
