@@ -961,21 +961,11 @@
             </sc-if>
             <sc-if value="{{ novoIsStep2 }}" hint-placeholder-val="{{ false }}">
             <div>
-              <div style="font-size:12px;font-weight:600;letter-spacing:.05em;color:#6E3A47;margin-bottom:10px">Data</div>
+              <div style="font-size:12px;font-weight:600;letter-spacing:.05em;color:#6E3A47;margin-bottom:10px">Data e horário</div>
               <div style="display:flex;gap:10px;margin-bottom:16px">
-                <input value="{{ novoDateKey }}" sc-camel-on-input="{{ onNovoDate }}" type="date" style="{{ inputStyle }}">
-                <button sc-camel-on-click="{{ novoLoadSlots }}" class="lgb-btn" style="white-space:nowrap;cursor:pointer;border:0;background:#C56B82;color:#fff;padding:12px 16px;border-radius:9px;font-size:12px;font-weight:600">Ver horários</button>
+                <div style="flex:1"><label style="{{ labelStyle }}">Data</label><input value="{{ novoDateKey }}" sc-camel-on-input="{{ onNovoDate }}" type="date" style="{{ inputStyle }}"></div>
+                <div style="flex:1"><label style="{{ labelStyle }}">Horário</label><input value="{{ novoTimeValue }}" sc-camel-on-input="{{ onNovoTime }}" type="time" style="{{ inputStyle }}"></div>
               </div>
-              <sc-if value="{{ novoAvailLoading }}" hint-placeholder-val="{{ false }}"><div style="font-size:13px;color:#8A7078">Carregando horários...</div></sc-if>
-              <sc-if value="{{ novoAvailError }}" hint-placeholder-val="{{ false }}"><div style="font-size:12px;font-weight:600;color:#C0504D;background:#FBEAEA;border-radius:8px;padding:9px 12px">{{ novoAvailError }}</div></sc-if>
-              <sc-if value="{{ novoNoSlots }}" hint-placeholder-val="{{ false }}"><div style="font-size:13px;color:#8A7078">Nenhum horário disponível nessa data.</div></sc-if>
-              <sc-if value="{{ novoShowSlots }}" hint-placeholder-val="{{ false }}">
-              <div style="display:flex;flex-wrap:wrap;gap:8px">
-                <sc-for list="{{ novoTimes }}" as="t" hint-placeholder-count="4">
-                  <button sc-camel-on-click="{{ t.pick }}" class="lgb-btn" style="{{ t.style }}">{{ t.label }}</button>
-                </sc-for>
-              </div>
-              </sc-if>
               <div style="display:flex;justify-content:space-between;margin-top:20px">
                 <button sc-camel-on-click="{{ novoPrev }}" class="lgb-btn" style="{{ backStyle }}">← Voltar</button>
                 <button sc-camel-on-click="{{ novoNext }}" class="lgb-btn" style="{{ novoNextStyle }}">Continuar →</button>
@@ -987,6 +977,17 @@
               <div style="background:#FBEFF1;border-radius:10px;padding:14px 16px;margin-bottom:16px;font-size:13px;color:#5A2E3A"><strong>{{ novoServiceNames }}</strong><br>{{ novoDateLabel }} às {{ novoTime }}</div>
               <div><label style="{{ labelStyle }}">Nome da cliente</label><input value="{{ novoName }}" sc-camel-on-input="{{ onNovoName }}" placeholder="Nome completo" style="{{ inputStyle }};margin-bottom:12px"></div>
               <div><label style="{{ labelStyle }}">WhatsApp</label><input value="{{ novoPhone }}" sc-camel-on-input="{{ onNovoPhone }}" placeholder="(11) 90000-0000" style="{{ inputStyle }};margin-bottom:14px"></div>
+              <sc-if value="{{ novoHasConflicts }}" hint-placeholder-val="{{ false }}">
+              <div style="font-size:12.5px;font-weight:600;color:#C0504D;background:#FBEAEA;border:1px solid rgba(192,80,77,.25);border-radius:10px;padding:12px 14px;margin-bottom:10px;line-height:1.55">⚠️ Esse horário conflita com {{ novoConflictCountLabel }}. Escolha outro horário para continuar — nada foi salvo.</div>
+              <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:14px">
+                <sc-for list="{{ novoConflictList }}" as="nc" hint-placeholder-count="2">
+                  <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;background:#FBF2F1;border:1px solid rgba(110,58,71,.08);border-radius:9px;padding:8px 10px">
+                    <span style="font-size:12.5px;color:#43333A;min-width:0"><strong style="color:#6E3A47">{{ nc.time }}</strong> · {{ nc.client }}{{ nc.serviceLabel }}</span>
+                    <a href="{{ nc.waLink }}" target="_blank" class="lgb-btn" style="flex-shrink:0;font-size:11px;font-weight:600;color:#4A8C6F;background:#EAF3EE;padding:7px 12px;border-radius:999px">WhatsApp</a>
+                  </div>
+                </sc-for>
+              </div>
+              </sc-if>
               <sc-if value="{{ novoSubmitError }}" hint-placeholder-val="{{ false }}"><div style="font-size:12.5px;font-weight:600;color:#C0504D;background:#FBEAEA;border:1px solid rgba(192,80,77,.25);border-radius:10px;padding:12px 14px;margin-bottom:14px;line-height:1.6">{{ novoSubmitError }}</div></sc-if>
               <div style="display:flex;justify-content:space-between;margin-top:6px">
                 <button sc-camel-on-click="{{ novoPrev }}" class="lgb-btn" style="{{ backStyle }}">← Voltar</button>
@@ -1505,8 +1506,8 @@ class Component extends DCLogic {
 
   openNovo() {
     this.setState({ novo: {
-      step: 1, serviceIds: [], dateKey: '', time: '', slots: [], availLoading: false, availError: null,
-      name: '', phone: '', submitLoading: false, submitError: null, done: false,
+      step: 1, serviceIds: [], dateKey: '', time: '',
+      name: '', phone: '', submitLoading: false, submitError: null, conflicts: null, done: false,
     } });
   }
   closeNovo() { this.setState({ novo: null }); }
@@ -1524,24 +1525,14 @@ class Component extends DCLogic {
     this.setState({ novo: { ...n, step: n.step + 1 } });
   }
   novoGoPrev() { const n = this.state.novo; if (!n) return; this.setState({ novo: { ...n, step: Math.max(1, n.step - 1) } }); }
-  onNovoDateInput(v) { const n = this.state.novo; if (!n) return; this.setState({ novo: { ...n, dateKey: v, time: null } }); }
-  pickNovoTime(t) { const n = this.state.novo; if (!n) return; this.setState({ novo: { ...n, time: t } }); }
+  onNovoDateInput(v) { const n = this.state.novo; if (!n) return; this.setState({ novo: { ...n, dateKey: v } }); }
+  onNovoTimeInput(v) { const n = this.state.novo; if (!n) return; this.setState({ novo: { ...n, time: v } }); }
   onNovoNameInput(v) { const n = this.state.novo; if (!n) return; this.setState({ novo: { ...n, name: v } }); }
   onNovoPhoneInput(v) { const n = this.state.novo; if (!n) return; this.setState({ novo: { ...n, phone: v } }); }
 
-  async loadNovoSlots() {
-    const n = this.state.novo; if (!n || !n.dateKey || !n.serviceIds.length) return;
-    this.setState({ novo: { ...n, availLoading: true, availError: null, slots: [], time: null } });
-    const res = await this.adminFetch('/api/admin/availability?date=' + n.dateKey + '&serviceIds=' + n.serviceIds.join(','));
-    const cur = this.state.novo; if (!cur) return;
-    if (!res.ok) { this.setState({ novo: { ...cur, availLoading: false, availError: 'Não foi possível carregar os horários.' } }); return; }
-    const slots = (res.data && Array.isArray(res.data.slots)) ? res.data.slots : [];
-    this.setState({ novo: { ...cur, availLoading: false, slots } });
-  }
-
   async submitNovo() {
     const n = this.state.novo; if (!n || !n.dateKey || !n.time || !n.serviceIds.length || !n.name.trim() || !n.phone.trim()) return;
-    this.setState({ novo: { ...n, submitLoading: true, submitError: null } });
+    this.setState({ novo: { ...n, submitLoading: true, submitError: null, conflicts: null } });
     const r = await this.adminFetch('/api/admin/appointments', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ clientName: n.name.trim(), clientPhone: n.phone.trim(), date: n.dateKey, startTime: n.time, serviceIds: n.serviceIds.slice() }),
@@ -1551,8 +1542,14 @@ class Component extends DCLogic {
       this.loadAdminAppointments(this.state.adminDate);
       return;
     }
+    const conflicts = (r.status === 409 && r.data && r.data.details && Array.isArray(r.data.details.conflictingAppointments))
+      ? r.data.details.conflictingAppointments : null;
+    if (conflicts && conflicts.length) {
+      this.setState({ novo: { ...this.state.novo, submitLoading: false, conflicts, submitError: null } });
+      return;
+    }
     const msg = (r.data && r.data.message) || 'Não foi possível criar o agendamento.';
-    this.setState({ novo: { ...this.state.novo, submitLoading: false, submitError: msg } });
+    this.setState({ novo: { ...this.state.novo, submitLoading: false, submitError: msg, conflicts: null } });
   }
 
   editSvcAdmin(x) {
@@ -2011,7 +2008,7 @@ class Component extends DCLogic {
     });
 
     const nn = s.novo;
-    let novoServices = [], novoTimes = [], novoServiceNames = '';
+    let novoServices = [], novoServiceNames = '';
     if (nn) {
       novoServices = (s.bApiServices || []).map((x) => {
         const selected = nn.serviceIds.includes(x.id);
@@ -2021,9 +2018,19 @@ class Component extends DCLogic {
           pickStyle: 'display:flex;flex-direction:column;text-align:left;cursor:pointer;border:1px solid ' + (selected ? '#C56B82' : 'rgba(110,58,71,.14)') + ';background:' + (selected ? '#FBEFF1' : '#fff') + ';color:' + (selected ? '#C56B82' : '#5A2E3A') + ';padding:10px 10px;border-radius:9px;font-family:Montserrat,sans-serif',
         };
       });
-      novoTimes = (nn.slots || []).map((sl) => ({ label: sl.start, pick: () => this.pickNovoTime(sl.start), style: timeBtn(nn.time === sl.start) }));
       novoServiceNames = nn.serviceIds.map((id) => ((s.bApiServices || []).find((x) => x.id === id) || {}).name).filter(Boolean).join(' + ');
     }
+    const novoConflictList = (nn && Array.isArray(nn.conflicts)) ? nn.conflicts.map((c) => {
+      const service = c.service || c.serviceName || (Array.isArray(c.services) ? c.services.map((sv) => (sv && sv.name) || sv).filter(Boolean).join(' + ') : '');
+      return {
+        time: c.startTime || c.time || (c.startAt ? this.spTime(c.startAt) : ''),
+        client: c.clientName || c.client || '—',
+        serviceLabel: service ? (' · ' + service) : '',
+        waLink: 'https://wa.me/' + (c.clientPhone || c.phone || c.whatsapp || '').replace(/\D/g, ''),
+      };
+    }).sort((x, y) => (x.time || '').localeCompare(y.time || '')) : [];
+    const novoHasConflicts = novoConflictList.length > 0;
+    const novoConflictCountLabel = novoConflictList.length + (novoConflictList.length === 1 ? ' agendamento confirmado' : ' agendamentos confirmados');
     const novoCanNext = nn && (nn.step === 1 ? nn.serviceIds.length > 0 : !!(nn.dateKey && nn.time));
     const novoNextStyleVal = 'cursor:' + (novoCanNext ? 'pointer' : 'not-allowed') + ';border:0;background:' + (novoCanNext ? '#C56B82' : '#E3C8CE') + ';color:#fff;padding:12px 22px;border-radius:999px;font-family:Montserrat,sans-serif;font-weight:600;font-size:12.5px';
     const novoCanConfirm = !!(nn && !nn.submitLoading && nn.name.trim() && nn.phone.trim());
@@ -2203,13 +2210,12 @@ class Component extends DCLogic {
       openNovo: () => this.openNovo(), closeNovo: () => this.closeNovo(),
       novoOpen: !!nn, novoDone: !!(nn && nn.done), novoNotDone: !(nn && nn.done),
       novoIsStep1: !!(nn && nn.step === 1), novoIsStep2: !!(nn && nn.step === 2), novoIsStep3: !!(nn && nn.step === 3),
-      novoServices, novoTimes, novoServiceNames,
+      novoServices, novoServiceNames,
       novoDateKey: nn ? nn.dateKey : '',
       onNovoDate: (e) => this.onNovoDateInput(e.target.value),
-      novoLoadSlots: () => this.loadNovoSlots(),
-      novoAvailLoading: !!(nn && nn.availLoading), novoAvailError: nn ? nn.availError : null,
-      novoNoSlots: !!(nn && nn.dateKey && !nn.availLoading && !nn.availError && (nn.slots || []).length === 0),
-      novoShowSlots: !!(nn && (nn.slots || []).length > 0 && !nn.availLoading),
+      novoTimeValue: nn ? (nn.time || '') : '',
+      onNovoTime: (e) => this.onNovoTimeInput(e.target.value),
+      novoHasConflicts, novoConflictList, novoConflictCountLabel,
       novoTime: nn ? (nn.time || '') : '',
       novoDateLabel: nn ? this.dateKeyLabel(nn.dateKey) : '',
       novoNext: () => this.novoGoNext(), novoPrev: () => this.novoGoPrev(),
