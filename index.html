@@ -729,7 +729,12 @@
     <div style="position:fixed;left:0;right:0;bottom:0;z-index:150;display:flex;justify-content:center;pointer-events:none">
       <div style="width:100%;max-width:560px;background:#fff;border-top:1px solid rgba(110,58,71,.08);box-shadow:0 -10px 30px -18px rgba(110,58,71,.35);display:flex;pointer-events:auto">
         <button sc-camel-on-click="{{ goAdminTabAgenda }}" class="lgb-btn" style="{{ navAgendaStyle }}">
-          <span style="font-size:20px;line-height:1">{{ navAgendaIcon }}</span>
+          <span style="position:relative;display:inline-flex">
+            <span style="font-size:20px;line-height:1">{{ navAgendaIcon }}</span>
+            <sc-if value="{{ recentBadgeVisible }}" hint-placeholder-val="{{ false }}">
+            <span style="position:absolute;top:-4px;right:-9px;min-width:16px;height:16px;padding:0 4px;border-radius:999px;background:#C0504D;color:#fff;font-size:9.5px;font-weight:700;display:flex;align-items:center;justify-content:center;line-height:1;box-shadow:0 0 0 2px #fff">{{ recentBadgeLabel }}</span>
+            </sc-if>
+          </span>
           <span style="font-size:10px;font-weight:700;letter-spacing:.02em;margin-top:4px">Agenda</span>
         </button>
         <button sc-camel-on-click="{{ openNovo }}" class="lgb-btn" style="{{ navNovoStyle }}">
@@ -1021,6 +1026,7 @@
 // Flag de lançamento: quando o conteúdo do ebook estiver pronto, troque para true para reexibir o card.
 const EBOOK_ATIVO = false;
 const API_BASE = 'https://leticia-guedes-backend.onrender.com';
+const LAST_SEEN_RECENT_KEY = 'lgb_admin_last_seen_recent';
 
 // Match de fotos por nome de serviço — a API não tem campo de foto, então usamos
 // as fotos já existentes no site sempre que o nome bater. Serviço novo sem match
@@ -1074,6 +1080,7 @@ class Component extends DCLogic {
     adminDate: null,
     adminAppts: [], adminLoading: false, adminError: null,
     adminTab: 'agenda',
+    recentCount: 0,
     settings: null, settingsLoaded: false, settingsLoading: false, settingsError: null,
     settingsSavingSegunda: false, settingsSavingDomingo: false,
     nextDaysSummary: [],
@@ -1102,9 +1109,14 @@ class Component extends DCLogic {
     this.applyRouteFromHash();
     const h = (window.location.hash || '').toLowerCase();
     const isAdminRoute = h === '#/painel' || h === '#/admin' || h.startsWith('#/painel/') || h.startsWith('#/admin/');
-    if (isAdminRoute && savedToken) { this.loadAdminAppointments(today); this.loadBlockedDays(); this.loadSettings(); }
+    if (isAdminRoute && savedToken) { this.loadAdminAppointments(today); this.loadBlockedDays(); this.loadSettings(); this.startRecentPoll(); }
     this._onHashChange = () => { this.applyRouteFromHash(); this.ensureAdminData(); };
     window.addEventListener('hashchange', this._onHashChange);
+    this._onVisibilityChange = () => {
+      if (document.hidden) this.stopRecentPoll();
+      else if (this.state.adminToken) this.startRecentPoll();
+    };
+    document.addEventListener('visibilitychange', this._onVisibilityChange);
     this.setupReveal();
     this._onScroll = () => {
       const el = document.querySelector('[data-parallax]');
@@ -1135,6 +1147,8 @@ class Component extends DCLogic {
     window.removeEventListener('scroll', this._onScroll);
     window.removeEventListener('hashchange', this._onHashChange);
     window.removeEventListener('resize', this._onResize);
+    document.removeEventListener('visibilitychange', this._onVisibilityChange);
+    this.stopRecentPoll();
   }
   setupReveal() {
     const els = document.querySelectorAll('[data-reveal]');
@@ -1447,7 +1461,10 @@ class Component extends DCLogic {
     })) });
   }
 
-  goAdminTab(tab) { this.setState({ adminTab: tab, adminMenuOpen: false }); }
+  goAdminTab(tab) {
+    this.setState({ adminTab: tab, adminMenuOpen: false });
+    if (tab === 'agenda') this.markAgendaSeen();
+  }
 
   mapApptCard(a, showDate) {
     const meta = STATUS_META[a.status] || { label: a.status || '—', color: '#8A7078', bg: '#F3E9EA' };
@@ -1537,6 +1554,7 @@ class Component extends DCLogic {
     if (r.ok) {
       this.setState({ novo: { ...this.state.novo, submitLoading: false, done: true } });
       this.loadAdminAppointments(this.state.adminDate);
+      this.excludeOwnFromRecent(r.data && r.data.id);
       return;
     }
     const conflicts = (r.status === 409 && r.data && r.data.details && Array.isArray(r.data.details.conflictingAppointments))
@@ -1589,6 +1607,56 @@ class Component extends DCLogic {
     this.setState({ svcAdminSaving: false, svcAdminSaveError: msg });
   }
 
+  getLastSeenRecent() {
+    let v = null;
+    try { v = localStorage.getItem(LAST_SEEN_RECENT_KEY); } catch (e) {}
+    if (!v) {
+      v = new Date().toISOString();
+      try { localStorage.setItem(LAST_SEEN_RECENT_KEY, v); } catch (e) {}
+    }
+    return v;
+  }
+  bumpLastSeenRecent() {
+    try { localStorage.setItem(LAST_SEEN_RECENT_KEY, new Date().toISOString()); } catch (e) {}
+  }
+  markAgendaSeen() {
+    this.bumpLastSeenRecent();
+    this.setState({ recentCount: 0 });
+  }
+  async pollRecentAppointments() {
+    if (!this.state.adminToken || document.hidden) return;
+    const since = this.getLastSeenRecent();
+    const r = await this.adminFetch('/api/admin/appointments/recent?since=' + encodeURIComponent(since));
+    if (!this.state.adminToken) return;
+    if (r.ok && Array.isArray(r.data)) {
+      const count = r.data.length;
+      this.setState((s) => ({ recentCount: Math.max(s.recentCount || 0, count) }));
+    }
+  }
+  // Chamado depois que ELA cria um agendamento pelo Painel: precisa contar qualquer
+  // agendamento externo genuíno que já estivesse pendente (por isso consulta com o
+  // "since" antigo), mas excluir especificamente o registro que ela acabou de criar —
+  // simplesmente avançar o "since" para agora esconderia externos criados no mesmo instante.
+  async excludeOwnFromRecent(ownId) {
+    if (!this.state.adminToken) return;
+    const since = this.getLastSeenRecent();
+    const r = await this.adminFetch('/api/admin/appointments/recent?since=' + encodeURIComponent(since));
+    this.bumpLastSeenRecent();
+    if (!this.state.adminToken) return;
+    if (r.ok && Array.isArray(r.data)) {
+      const externalCount = r.data.filter((a) => a.id !== ownId).length;
+      this.setState((s) => ({ recentCount: Math.max(s.recentCount || 0, externalCount) }));
+    }
+  }
+  startRecentPoll() {
+    this.stopRecentPoll();
+    this.pollRecentAppointments();
+    this._recentPollTimer = setInterval(() => this.pollRecentAppointments(), 75000);
+  }
+  stopRecentPoll() {
+    if (this._recentPollTimer) { clearInterval(this._recentPollTimer); this._recentPollTimer = null; }
+  }
+
   async adminFetch(path, opts) {
     const token = this.state.adminToken;
     const headers = Object.assign({}, opts && opts.headers, { Authorization: 'Bearer ' + token });
@@ -1596,6 +1664,7 @@ class Component extends DCLogic {
     if (r.status === 401) {
       try { localStorage.removeItem('lgb_admin_token'); } catch (e) {}
       this.setState({ adminToken: null });
+      this.stopRecentPoll();
     }
     return r;
   }
@@ -1620,6 +1689,7 @@ class Component extends DCLogic {
       this.loadBlockedDays();
       this.loadBlockedSlots(dateKey);
       this.loadSettings();
+      this.startRecentPoll();
       return;
     }
     const msg = (r.data && r.data.message) || 'Não foi possível entrar. Tente novamente em instantes.';
@@ -1628,7 +1698,8 @@ class Component extends DCLogic {
 
   doLogoutAdmin() {
     try { localStorage.removeItem('lgb_admin_token'); } catch (e) {}
-    this.setState({ adminToken: null, loginUser: '', loginPass: '', adminMenuOpen: false, adminAppts: [] });
+    this.stopRecentPoll();
+    this.setState({ adminToken: null, loginUser: '', loginPass: '', adminMenuOpen: false, adminAppts: [], recentCount: 0 });
   }
 
   async loadAdminAppointments(dateKey) {
@@ -2187,6 +2258,8 @@ class Component extends DCLogic {
       navExtrasStyle: 'flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:11px 0 9px;cursor:pointer;border:0;background:transparent;color:' + (s.adminTab === 'extras' ? '#C56B82' : '#A8949B'),
       navNovoStyle: 'flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:11px 0 9px;cursor:pointer;border:0;background:transparent;color:#A8949B',
       navAgendaIcon: '🗓️', navServicosIcon: '💅', navExtrasIcon: '⚙️',
+      recentBadgeVisible: (s.recentCount || 0) > 0,
+      recentBadgeLabel: (s.recentCount || 0) > 9 ? '9+' : String(s.recentCount || 0),
 
       // admin tabs
       adminTab: s.adminTab, adminTabAgenda: s.adminTab === 'agenda', adminTabServicos: s.adminTab === 'servicos', adminTabExtras: s.adminTab === 'extras',
