@@ -233,7 +233,7 @@
       <span style="display:inline-flex;align-items:center;gap:7px;font-size:12px;font-weight:600;letter-spacing:.02em;color:#6E3A47;background:rgba(197,107,130,.1);border:1px solid rgba(197,107,130,.25);border-radius:999px;padding:8px 18px">{{ attendanceRangeLabel }}</span>
     </div>
 
-    <div class="lgb-hoverlift" style="background:#fff;border:1px solid rgba(110,58,71,.08);border-radius:16px;box-shadow:0 30px 70px -40px rgba(110,58,71,.4);overflow:hidden">
+    <div id="lgb-booking-card" class="lgb-hoverlift" style="background:#fff;border:1px solid rgba(110,58,71,.08);border-radius:16px;box-shadow:0 30px 70px -40px rgba(110,58,71,.4);overflow:hidden">
       <!-- Stepper -->
       <div style="display:flex;background:#FBEFF1;border-bottom:1px solid rgba(110,58,71,.06)">
         <sc-for list="{{ steps }}" as="st" hint-placeholder-count="3">
@@ -1150,6 +1150,20 @@ class Component extends DCLogic {
     document.removeEventListener('visibilitychange', this._onVisibilityChange);
     this.stopRecentPoll();
   }
+  // O conteúdo de cada passo do agendamento tem altura bem diferente (grade de
+  // serviços/datas vs. só nome+telefone). Sem isso, trocar de passo mantém o
+  // scrollY absoluto e a página "encolhe" embaixo do dedo — no mobile isso faz
+  // a tela pular pra seção seguinte (Cursos) em vez de mostrar o próximo passo.
+  scrollToBookingCard() {
+    const card = document.getElementById('lgb-booking-card');
+    if (!card) return;
+    const header = document.querySelector('header');
+    const headerH = header ? header.getBoundingClientRect().height : 0;
+    // scroll-margin-top (not manual scrollY math) so the sticky header never covers
+    // the card's top, regardless of viewport/scroll quirks on a given mobile browser.
+    card.style.scrollMarginTop = (headerH + 12) + 'px';
+    card.scrollIntoView({ block: 'start', behavior: 'auto' });
+  }
   setupReveal() {
     const els = document.querySelectorAll('[data-reveal]');
     if (!els.length) return;
@@ -1990,15 +2004,15 @@ class Component extends DCLogic {
       if (!canNext) return;
       if (s.bStep === 1 && !s.bModeGateOpen) {
         const needsGate = s.bServiceIds.some((id) => { const sv = bApiSvcs.find((x) => x.id === id); return sv && sv.manutDurMin != null; });
-        if (needsGate) { this.setState({ bModeGateOpen: true }); return; }
+        if (needsGate) { this.setState({ bModeGateOpen: true }, () => this.scrollToBookingCard()); return; }
       }
       const newStep = s.bStep + 1;
-      this.setState({ bStep: newStep, bModeGateOpen: false });
+      this.setState({ bStep: newStep, bModeGateOpen: false }, () => this.scrollToBookingCard());
       if (s.bStep === 1 && newStep === 2 && s.bDateKey) { this.fetchAvailability(s.bDateKey, s.bServiceIds); this.fetchDayLoad(s.bDateKey); }
     };
     const prev = () => {
-      if (s.bModeGateOpen) { this.setState({ bModeGateOpen: false }); return; }
-      this.setState({ bStep: Math.max(1, s.bStep - 1) });
+      if (s.bModeGateOpen) { this.setState({ bModeGateOpen: false }, () => this.scrollToBookingCard()); return; }
+      this.setState({ bStep: Math.max(1, s.bStep - 1) }, () => this.scrollToBookingCard());
     };
     const modeGateServices = s.bServiceIds.map((id) => bookingServices.find((x) => x.id === id)).filter((x) => x && x.hasManutDur);
 
