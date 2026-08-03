@@ -67,7 +67,7 @@
   <!-- Top nav -->
   <header style="position:sticky;top:0;z-index:200;background:rgba(253,246,244,.86);backdrop-filter:blur(12px);border-bottom:1px solid rgba(110,58,71,.08)">
     <div style="{{ headerInnerStyle }}">
-      <div style="display:flex;flex-direction:column;line-height:1;flex-shrink:0">
+      <div sc-camel-on-click="{{ scrollToTop }}" aria-label="Voltar ao início" style="display:flex;flex-direction:column;line-height:1;flex-shrink:0;cursor:pointer">
         <span style="font-family:'Cormorant Garamond',serif;font-weight:600;font-size:23px;color:#6E3A47;letter-spacing:.01em">Letícia Guedes</span>
         <span style="font-family:'Montserrat';font-weight:500;font-size:9px;letter-spacing:.42em;text-transform:uppercase;color:#BE9B5C;margin-top:3px;padding-left:.42em">Beauty</span>
       </div>
@@ -93,7 +93,7 @@
   </header>
 
   <!-- HERO -->
-  <section style="position:relative;min-height:88vh;display:flex;align-items:center;overflow:hidden;background:#5A2E3A">
+  <section id="lgb-topo" style="position:relative;min-height:88vh;display:flex;align-items:center;overflow:hidden;background:#5A2E3A">
     <div data-parallax="" style="position:absolute;inset:-14% 0;will-change:transform">
       <image-slot id="lgb-hero" shape="rect" fit="cover" placeholder="foto da Letícia — coroa, tranças, camisa listrada rosa" src="assets/images/hero-leticia.jpg" credit="" credit-href=""></image-slot>
       <div style="position:absolute;inset:0;background:linear-gradient(100deg,rgba(58,25,34,.94) 0%,rgba(58,25,34,.82) 30%,rgba(58,25,34,.5) 56%,rgba(58,25,34,.2) 82%,rgba(58,25,34,.06) 100%)"></div>
@@ -2237,6 +2237,7 @@ class Component extends DCLogic {
       revStyle: rev, inputStyle, labelStyle,
       isMobile,
       headerInnerStyle: 'max-width:1180px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;gap:14px;' + (isMobile ? 'padding:13px 18px' : 'padding:16px 26px'),
+      scrollToTop: () => { const el = document.getElementById('lgb-topo'); if (el) el.scrollIntoView({ block: 'start', behavior: 'smooth' }); },
       headerNavStyle: isMobile ? 'display:none' : 'display:flex;align-items:center;gap:30px;font-size:12.5px;font-weight:500;letter-spacing:.04em;color:#6E3A47',
       hamburgerBtnStyle: (isMobile ? 'display:flex;' : 'display:none;') + 'align-items:center;justify-content:center;width:40px;height:40px;border:1px solid rgba(110,58,71,.16);background:rgba(110,58,71,.05);border-radius:10px;cursor:pointer;font-size:19px;line-height:1;color:#6E3A47;flex-shrink:0',
       hamburgerIcon: s.mobileMenuOpen ? '✕' : '☰',
