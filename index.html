@@ -752,6 +752,27 @@
       </div>
     </div>
 
+    <!-- Painel de agendamentos novos (aberto ao tocar no selo da aba Agenda) -->
+    <sc-if value="{{ recentPanelOpen }}" hint-placeholder-val="{{ false }}">
+    <!-- z-index abaixo da nav (150) de propósito: fechar tocando fora, mas sem bloquear os botões da nav -->
+    <div sc-camel-on-click="{{ closeRecentPanel }}" style="position:fixed;inset:0;z-index:140;background:transparent"></div>
+    <div style="position:fixed;left:14px;right:14px;bottom:78px;max-width:360px;margin:0 auto;background:#fff;border:1px solid rgba(110,58,71,.1);border-radius:14px;box-shadow:0 -14px 40px -14px rgba(110,58,71,.45);z-index:160;max-height:min(60vh,420px);overflow:auto;animation:lgbFadeUp .2s ease">
+      <div style="padding:14px 16px 10px;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#8A7078;border-bottom:1px solid rgba(110,58,71,.06)">Agendamentos novos</div>
+      <sc-for list="{{ recentPanelItems }}" as="ri" hint-placeholder-count="2">
+        <button sc-camel-on-click="{{ ri.open }}" class="lgb-btn" style="display:block;width:100%;text-align:left;cursor:pointer;border:0;border-bottom:1px solid rgba(110,58,71,.06);background:transparent;padding:12px 16px">
+          <div style="display:flex;align-items:baseline;justify-content:space-between;gap:10px">
+            <span style="font-family:'Cormorant Garamond',serif;font-size:16px;font-weight:600;color:#5A2E3A">{{ ri.client }}</span>
+            <span style="font-size:11px;font-weight:700;color:#C56B82;white-space:nowrap">{{ ri.time }}</span>
+          </div>
+          <div style="font-size:11.5px;color:#8A7078;margin-top:2px">{{ ri.dateLabel }}<sc-if value="{{ ri.service }}" hint-placeholder-val="{{ false }}"> · {{ ri.service }}</sc-if></div>
+        </button>
+      </sc-for>
+      <sc-if value="{{ recentPanelEmpty }}" hint-placeholder-val="{{ false }}">
+      <div style="padding:20px 16px;text-align:center;font-size:12.5px;color:#8A7078">Nenhum agendamento novo.</div>
+      </sc-if>
+    </div>
+    </sc-if>
+
     <!-- Block day confirm -->
     <sc-if value="{{ blockConfirmOpen }}" hint-placeholder-val="{{ false }}">
     <div style="position:fixed;inset:0;z-index:500;background:rgba(67,51,58,.52);display:flex;align-items:center;justify-content:center;padding:24px">
@@ -1080,7 +1101,7 @@ class Component extends DCLogic {
     adminDate: null,
     adminAppts: [], adminLoading: false, adminError: null,
     adminTab: 'agenda',
-    recentCount: 0,
+    recentItems: [], recentPanelOpen: false,
     settings: null, settingsLoaded: false, settingsLoading: false, settingsError: null,
     settingsSavingSegunda: false, settingsSavingDomingo: false,
     nextDaysSummary: [],
@@ -1476,7 +1497,14 @@ class Component extends DCLogic {
   }
 
   goAdminTab(tab) {
-    this.setState({ adminTab: tab, adminMenuOpen: false });
+    // Primeiro toque na aba Agenda com agendamentos novos pendentes abre a listinha
+    // em vez de navegar direto — evita precisar de um alvo de toque separado e minúsculo
+    // sobre o selo. Um segundo toque (ou tocar num item da lista) navega normalmente.
+    if (tab === 'agenda' && (this.state.recentItems || []).length && !this.state.recentPanelOpen) {
+      this.setState({ recentPanelOpen: true });
+      return;
+    }
+    this.setState({ adminTab: tab, adminMenuOpen: false, recentPanelOpen: false });
     if (tab === 'agenda') this.markAgendaSeen();
   }
 
@@ -1635,17 +1663,24 @@ class Component extends DCLogic {
   }
   markAgendaSeen() {
     this.bumpLastSeenRecent();
-    this.setState({ recentCount: 0 });
+    this.setState({ recentItems: [], recentPanelOpen: false });
+  }
+  // Mescla por id (nunca substitui a lista inteira) — assim um poll com "since" mais
+  // recente não faz itens já mostrados desaparecerem antes dela marcar como visto.
+  mergeRecentItems(items) {
+    if (!items || !items.length) return;
+    this.setState((s) => {
+      const byId = new Map((s.recentItems || []).map((a) => [a.id, a]));
+      items.forEach((a) => byId.set(a.id, a));
+      return { recentItems: Array.from(byId.values()) };
+    });
   }
   async pollRecentAppointments() {
     if (!this.state.adminToken || document.hidden) return;
     const since = this.getLastSeenRecent();
     const r = await this.adminFetch('/api/admin/appointments/recent?since=' + encodeURIComponent(since));
     if (!this.state.adminToken) return;
-    if (r.ok && Array.isArray(r.data)) {
-      const count = r.data.length;
-      this.setState((s) => ({ recentCount: Math.max(s.recentCount || 0, count) }));
-    }
+    if (r.ok && Array.isArray(r.data)) this.mergeRecentItems(r.data);
   }
   // Chamado depois que ELA cria um agendamento pelo Painel: precisa contar qualquer
   // agendamento externo genuíno que já estivesse pendente (por isso consulta com o
@@ -1657,10 +1692,13 @@ class Component extends DCLogic {
     const r = await this.adminFetch('/api/admin/appointments/recent?since=' + encodeURIComponent(since));
     this.bumpLastSeenRecent();
     if (!this.state.adminToken) return;
-    if (r.ok && Array.isArray(r.data)) {
-      const externalCount = r.data.filter((a) => a.id !== ownId).length;
-      this.setState((s) => ({ recentCount: Math.max(s.recentCount || 0, externalCount) }));
-    }
+    if (r.ok && Array.isArray(r.data)) this.mergeRecentItems(r.data.filter((a) => a.id !== ownId));
+  }
+  closeRecentPanel() { this.setState({ recentPanelOpen: false }); }
+  goToRecentAppointment(item) {
+    const dateKey = item.date || (item.startAt ? item.startAt.slice(0, 10) : null);
+    if (dateKey) { this.setState({ adminDate: dateKey, adminTab: 'agenda' }); this.loadAdminAppointments(dateKey); }
+    this.markAgendaSeen();
   }
   startRecentPoll() {
     this.stopRecentPoll();
@@ -1713,7 +1751,7 @@ class Component extends DCLogic {
   doLogoutAdmin() {
     try { localStorage.removeItem('lgb_admin_token'); } catch (e) {}
     this.stopRecentPoll();
-    this.setState({ adminToken: null, loginUser: '', loginPass: '', adminMenuOpen: false, adminAppts: [], recentCount: 0 });
+    this.setState({ adminToken: null, loginUser: '', loginPass: '', adminMenuOpen: false, adminAppts: [], recentItems: [], recentPanelOpen: false });
   }
 
   async loadAdminAppointments(dateKey) {
@@ -2017,6 +2055,19 @@ class Component extends DCLogic {
     const modeGateServices = s.bServiceIds.map((id) => bookingServices.find((x) => x.id === id)).filter((x) => x && x.hasManutDur);
 
     // ADMIN
+    const recentPanelItems = (s.recentItems || []).map((a) => {
+      const svcNames = Array.isArray(a.services) ? a.services.map((x) => x.name).join(' + ') : (a.service || '');
+      const dateKey = a.date || (a.startAt ? a.startAt.slice(0, 10) : null);
+      return {
+        id: a.id,
+        client: a.clientName || a.client || '—',
+        time: a.startAt ? this.spTime(a.startAt) : '',
+        dateLabel: dateKey ? this.dateKeyLabel(dateKey) : '',
+        service: svcNames,
+        sortKey: a.createdAt || a.startAt || '',
+        open: () => this.goToRecentAppointment(a),
+      };
+    }).sort((x, y) => y.sortKey.localeCompare(x.sortKey));
     const dayAppts = (s.adminAppts || []).map((a) => this.mapApptCard(a, false)).sort((x, y) => x.time.localeCompare(y.time));
     const searchAppts = (s.searchResults || []).map((a) => this.mapApptCard(a, true));
     const searchActive = s.searchActive;
@@ -2272,8 +2323,12 @@ class Component extends DCLogic {
       navExtrasStyle: 'flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:11px 0 9px;cursor:pointer;border:0;background:transparent;color:' + (s.adminTab === 'extras' ? '#C56B82' : '#A8949B'),
       navNovoStyle: 'flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:11px 0 9px;cursor:pointer;border:0;background:transparent;color:#A8949B',
       navAgendaIcon: '🗓️', navServicosIcon: '💅', navExtrasIcon: '⚙️',
-      recentBadgeVisible: (s.recentCount || 0) > 0,
-      recentBadgeLabel: (s.recentCount || 0) > 9 ? '9+' : String(s.recentCount || 0),
+      recentBadgeVisible: recentPanelItems.length > 0,
+      recentBadgeLabel: recentPanelItems.length > 9 ? '9+' : String(recentPanelItems.length),
+      closeRecentPanel: () => this.closeRecentPanel(),
+      recentPanelOpen: !!s.recentPanelOpen,
+      recentPanelItems,
+      recentPanelEmpty: recentPanelItems.length === 0,
 
       // admin tabs
       adminTab: s.adminTab, adminTabAgenda: s.adminTab === 'agenda', adminTabServicos: s.adminTab === 'servicos', adminTabExtras: s.adminTab === 'extras',
