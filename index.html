@@ -726,6 +726,117 @@
     </div>
     </sc-if>
 
+    <sc-if value="{{ adminTabCalendario }}" hint-placeholder-val="{{ false }}">
+    <div style="padding:20px 20px 100px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+        <button sc-camel-on-click="{{ calPrevMonth }}" aria-label="Mês anterior" class="lgb-btn" style="width:34px;height:34px;display:flex;align-items:center;justify-content:center;font-size:15px;color:#6E3A47;background:#F7EDEE;border:1px solid rgba(110,58,71,.1);border-radius:50%">‹</button>
+        <div style="text-align:center">
+          <div style="font-family:'Cormorant Garamond',serif;font-weight:600;font-size:19px;color:#5A2E3A">{{ calMonthLabel }}</div>
+          <sc-if value="{{ calNotCurrentMonth }}" hint-placeholder-val="{{ false }}">
+          <button sc-camel-on-click="{{ calGoToday }}" class="lgb-btn" style="cursor:pointer;border:0;background:transparent;color:#C56B82;font-size:11px;font-weight:600;padding:2px 0">Hoje</button>
+          </sc-if>
+        </div>
+        <button sc-camel-on-click="{{ calNextMonth }}" aria-label="Próximo mês" class="lgb-btn" style="width:34px;height:34px;display:flex;align-items:center;justify-content:center;font-size:15px;color:#6E3A47;background:#F7EDEE;border:1px solid rgba(110,58,71,.1);border-radius:50%">›</button>
+      </div>
+
+      <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:3px;margin-bottom:6px">
+        <sc-for list="{{ calWeekdayLabels }}" as="wd" hint-placeholder-count="7">
+          <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:.04em;color:#B98A96">{{ wd }}</div>
+        </sc-for>
+      </div>
+
+      <sc-if value="{{ calLoading }}" hint-placeholder-val="{{ true }}">
+      <div style="padding:50px 0;text-align:center;font-size:13px;color:#8A7078;display:flex;align-items:center;justify-content:center;gap:10px">
+        <span style="width:16px;height:16px;border:2px solid rgba(197,107,130,.3);border-top-color:#C56B82;border-radius:50%;display:inline-block;animation:lgbSpin .8s linear infinite"></span>
+        Carregando calendário...
+      </div>
+      </sc-if>
+      <sc-if value="{{ calError }}" hint-placeholder-val="{{ false }}">
+      <div style="font-size:12.5px;font-weight:600;color:#C0504D;background:#FBEAEA;border:1px solid rgba(192,80,77,.25);border-radius:10px;padding:12px 14px">{{ calError }}</div>
+      </sc-if>
+
+      <sc-if value="{{ calReady }}" hint-placeholder-val="{{ false }}">
+      <div style="display:flex;flex-direction:column;gap:3px">
+        <sc-for list="{{ calWeeks }}" as="week" hint-placeholder-count="6">
+          <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:3px">
+            <sc-for list="{{ week.days }}" as="day" hint-placeholder-count="7">
+              <div style="{{ day.cellStyle }}" sc-camel-on-click="{{ day.onClick }}">
+                <sc-if value="{{ day.inMonth }}" hint-placeholder-val="{{ true }}">
+                <div style="{{ day.numStyle }}">{{ day.dayNum }}</div>
+                <sc-if value="{{ day.hasItems }}" hint-placeholder-val="{{ false }}">
+                <div style="display:flex;flex-direction:column;gap:2px;margin-top:2px;width:100%">
+                  <sc-for list="{{ day.chips }}" as="ch" hint-placeholder-count="2">
+                    <div style="{{ ch.style }}">{{ ch.label }}</div>
+                  </sc-for>
+                  <sc-if value="{{ day.hasOverflow }}" hint-placeholder-val="{{ false }}">
+                  <div style="font-size:8px;font-weight:700;color:#B98A96;text-align:center">+{{ day.overflowCount }}</div>
+                  </sc-if>
+                </div>
+                </sc-if>
+                </sc-if>
+              </div>
+            </sc-for>
+          </div>
+        </sc-for>
+      </div>
+      <sc-if value="{{ calEmpty }}" hint-placeholder-val="{{ false }}">
+      <div style="padding:40px 20px;text-align:center;font-size:13px;color:#8A7078;line-height:1.6">Nenhum retorno de manutenção previsto para {{ calMonthLabel }}. ✨</div>
+      </sc-if>
+      </sc-if>
+    </div>
+
+    <!-- Lista de lembretes de um dia com mais de um item -->
+    <sc-if value="{{ calDayListOpen }}" hint-placeholder-val="{{ false }}">
+    <div sc-camel-on-click="{{ closeCalDayList }}" style="position:fixed;inset:0;z-index:490;background:rgba(67,51,58,.4)"></div>
+    <div style="position:fixed;left:14px;right:14px;bottom:78px;max-width:360px;margin:0 auto;background:#fff;border:1px solid rgba(110,58,71,.1);border-radius:14px;box-shadow:0 -14px 40px -14px rgba(110,58,71,.45);z-index:495;max-height:min(60vh,420px);overflow:auto;animation:lgbFadeUp .2s ease">
+      <div style="padding:14px 16px 10px;font-size:12px;font-weight:700;color:#5A2E3A;border-bottom:1px solid rgba(110,58,71,.06);display:flex;align-items:center;justify-content:space-between">
+        <span>{{ calDayListDateLabel }}</span>
+        <button sc-camel-on-click="{{ closeCalDayList }}" aria-label="Fechar" class="lgb-btn" style="border:0;background:#F3E9EA;color:#8A7078;width:22px;height:22px;border-radius:50%;font-size:11px;cursor:pointer">✕</button>
+      </div>
+      <sc-for list="{{ calDayListItems }}" as="it" hint-placeholder-count="2">
+        <button sc-camel-on-click="{{ it.open }}" class="lgb-btn" style="display:block;width:100%;text-align:left;cursor:pointer;border:0;border-bottom:1px solid rgba(110,58,71,.06);background:transparent;padding:12px 16px">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:10px">
+            <span style="font-family:'Cormorant Garamond',serif;font-size:15.5px;font-weight:600;color:#5A2E3A">{{ it.client }}</span>
+            <span style="{{ it.statusStyle }}">{{ it.statusLabel }}</span>
+          </div>
+          <div style="font-size:11.5px;color:#8A7078;margin-top:2px">{{ it.service }}</div>
+        </button>
+      </sc-for>
+    </div>
+    </sc-if>
+
+    <!-- Detalhe do lembrete de manutenção -->
+    <sc-if value="{{ calDetailOpen }}" hint-placeholder-val="{{ false }}">
+    <div style="position:fixed;inset:0;z-index:500;background:rgba(67,51,58,.52);display:flex;align-items:center;justify-content:center;padding:24px">
+      <div style="background:#fff;border-radius:16px;padding:26px 22px;max-width:380px;width:100%;box-shadow:0 30px 60px -30px rgba(0,0,0,.5)">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:4px">
+          <div style="font-family:'Cormorant Garamond',serif;font-weight:600;font-size:21px;color:#5A2E3A">{{ calDetailClient }}</div>
+          <span style="{{ calDetailStatusStyle }}">{{ calDetailStatusLabel }}</span>
+        </div>
+        <div style="font-size:13px;color:#8A7078;margin-bottom:2px">{{ calDetailService }}</div>
+        <div style="font-size:12.5px;color:#A8949B;margin-bottom:18px">Completa os dias em {{ calDetailDueLabel }}</div>
+
+        <sc-if value="{{ calDetailError }}" hint-placeholder-val="{{ false }}">
+        <div style="font-size:12px;font-weight:600;color:#C0504D;background:#FBEAEA;border-radius:8px;padding:9px 12px;margin-bottom:14px">{{ calDetailError }}</div>
+        </sc-if>
+
+        <sc-if value="{{ calDetailHasMessage }}" hint-placeholder-val="{{ true }}">
+        <a href="{{ calDetailWaLink }}" target="_blank" class="lgb-btn" style="display:flex;align-items:center;justify-content:center;gap:8px;width:100%;cursor:pointer;border:0;background:#4A8C6F;color:#fff;padding:13px;border-radius:999px;font-size:13px;font-weight:600;margin-bottom:10px">💬 Chamar no WhatsApp</a>
+        </sc-if>
+        <sc-if value="{{ calDetailNoMessage }}" hint-placeholder-val="{{ false }}">
+        <div style="text-align:center;padding:13px;border-radius:999px;background:#F3E9EA;color:#A8949B;font-size:12.5px;font-weight:600;margin-bottom:10px">Mensagem não configurada para este serviço</div>
+        </sc-if>
+
+        <div style="display:flex;gap:8px;margin-bottom:8px">
+          <button sc-camel-on-click="{{ markReminderAvisado }}" class="lgb-btn" style="{{ calDetailAvisarBtnStyle }}">{{ calDetailAvisarLabel }}</button>
+          <button sc-camel-on-click="{{ dismissReminder }}" class="lgb-btn" style="{{ calDetailDispensarBtnStyle }}">{{ calDetailDispensarLabel }}</button>
+        </div>
+        <button sc-camel-on-click="{{ closeCalDetail }}" class="lgb-btn" style="width:100%;cursor:pointer;border:1px solid rgba(110,58,71,.2);background:transparent;color:#6E3A47;padding:11px;border-radius:999px;font-family:Montserrat,sans-serif;font-weight:600;font-size:12.5px">Fechar</button>
+      </div>
+    </div>
+    </sc-if>
+    </sc-if>
+
     <div style="position:fixed;left:0;right:0;bottom:0;z-index:150;display:flex;justify-content:center;pointer-events:none">
       <div style="width:100%;max-width:560px;background:#fff;border-top:1px solid rgba(110,58,71,.08);box-shadow:0 -10px 30px -18px rgba(110,58,71,.35);display:flex;pointer-events:auto">
         <button sc-camel-on-click="{{ goAdminTabAgenda }}" class="lgb-btn" style="{{ navAgendaStyle }}">
@@ -736,6 +847,15 @@
             </sc-if>
           </span>
           <span style="font-size:10px;font-weight:700;letter-spacing:.02em;margin-top:4px">Agenda</span>
+        </button>
+        <button sc-camel-on-click="{{ goAdminTabCalendario }}" class="lgb-btn" style="{{ navCalendarioStyle }}">
+          <span style="position:relative;display:inline-flex">
+            <span style="font-size:20px;line-height:1">{{ navCalendarioIcon }}</span>
+            <sc-if value="{{ calBadgeVisible }}" hint-placeholder-val="{{ false }}">
+            <span style="position:absolute;top:-4px;right:-9px;min-width:16px;height:16px;padding:0 4px;border-radius:999px;background:#C0504D;color:#fff;font-size:9.5px;font-weight:700;display:flex;align-items:center;justify-content:center;line-height:1;box-shadow:0 0 0 2px #fff">{{ calBadgeLabel }}</span>
+            </sc-if>
+          </span>
+          <span style="font-size:10px;font-weight:700;letter-spacing:.02em;margin-top:4px">Calendário</span>
         </button>
         <button sc-camel-on-click="{{ openNovo }}" class="lgb-btn" style="{{ navNovoStyle }}">
           <span style="font-size:20px;line-height:1">➕</span>
@@ -1078,6 +1198,13 @@ const STATUS_META = {
   concluido: { label: 'Concluído', color: '#4A8C6F', bg: '#EAF3EE' },
   cancelado: { label: 'Cancelado', color: '#C0504D', bg: '#FBEAEA' },
 };
+const REMINDER_STATUS_META = {
+  pendente: { label: 'Pendente', color: '#C56B82', bg: '#FBEFF1' },
+  avisado: { label: 'Avisado', color: '#8A7078', bg: '#F3E9EA' },
+  agendado: { label: 'Agendado', color: '#4A8C6F', bg: '#EAF3EE' },
+  dispensado: { label: 'Dispensado', color: '#A8949B', bg: '#F1E7E8' },
+};
+const MONTH_NAMES = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
 
 class Component extends DCLogic {
   state = {
@@ -1104,6 +1231,8 @@ class Component extends DCLogic {
     adminAppts: [], adminLoading: false, adminError: null,
     adminTab: 'agenda',
     recentItems: [], recentPanelOpen: false,
+    calMonthKey: null, calLoaded: false, calReminders: [], calLoading: false, calError: null, calMaintCount: 0,
+    calDayListDate: null, calDetail: null, calDetailActionLoading: false, calDetailActionError: null,
     settings: null, settingsLoaded: false, settingsLoading: false, settingsError: null,
     settingsSavingSegunda: false, settingsSavingDomingo: false,
     nextDaysSummary: [],
@@ -1128,11 +1257,11 @@ class Component extends DCLogic {
     this.loadBusinessHours();
     const savedToken = (() => { try { return localStorage.getItem('lgb_admin_token'); } catch (e) { return null; } })();
     const today = this.spToday();
-    this.setState({ adminToken: savedToken || null, adminDate: today });
+    this.setState({ adminToken: savedToken || null, adminDate: today, calMonthKey: today.slice(0, 7) });
     this.applyRouteFromHash();
     const h = (window.location.hash || '').toLowerCase();
     const isAdminRoute = h === '#/painel' || h === '#/admin' || h.startsWith('#/painel/') || h.startsWith('#/admin/');
-    if (isAdminRoute && savedToken) { this.loadAdminAppointments(today); this.loadBlockedDays(); this.loadSettings(); this.startRecentPoll(); }
+    if (isAdminRoute && savedToken) { this.loadAdminAppointments(today); this.loadBlockedDays(); this.loadSettings(); this.loadMaintenanceReminders(today.slice(0, 7)); this.startRecentPoll(); }
     this._onHashChange = () => { this.applyRouteFromHash(); this.ensureAdminData(); };
     window.addEventListener('hashchange', this._onHashChange);
     this._onVisibilityChange = () => {
@@ -1365,6 +1494,7 @@ class Component extends DCLogic {
     if (this.state.view === 'admin' && this.state.adminToken && this.state.adminDate) this.loadAdminAppointments(this.state.adminDate);
     if (this.state.view === 'admin' && this.state.adminToken && !this.state.blockedDaysLoaded) this.loadBlockedDays();
     if (this.state.view === 'admin' && this.state.adminToken && !this.state.settingsLoaded) this.loadSettings();
+    if (this.state.view === 'admin' && this.state.adminToken && !this.state.calLoaded) this.loadMaintenanceReminders(this.state.calMonthKey || this.spToday().slice(0, 7));
   }
 
   async loadSettings() {
@@ -1508,6 +1638,123 @@ class Component extends DCLogic {
     }
     this.setState({ adminTab: tab, adminMenuOpen: false, recentPanelOpen: false });
     if (tab === 'agenda') this.markAgendaSeen();
+  }
+
+  addMonthsToKey(monthKey, delta) {
+    const [y, m] = monthKey.split('-').map(Number);
+    const dt = new Date(y, m - 1 + delta, 1);
+    return dt.getFullYear() + '-' + String(dt.getMonth() + 1).padStart(2, '0');
+  }
+  monthKeyLabel(monthKey) {
+    if (!monthKey) return '';
+    const [y, m] = monthKey.split('-').map(Number);
+    return MONTH_NAMES[m - 1] + ' ' + y;
+  }
+  async loadMaintenanceReminders(monthKey) {
+    const reqId = (this._calReqId = (this._calReqId || 0) + 1);
+    this.setState({ calMonthKey: monthKey, calLoading: true, calError: null, calLoaded: true });
+    const [y, m] = monthKey.split('-').map(Number);
+    const from = monthKey + '-01';
+    const to = monthKey + '-' + String(new Date(y, m, 0).getDate()).padStart(2, '0');
+    const r = await this.adminFetch('/api/admin/maintenance-reminders?from=' + from + '&to=' + to);
+    if (reqId !== this._calReqId) return;
+    if (r.ok && Array.isArray(r.data)) this.setState({ calReminders: r.data, calLoading: false });
+    else this.setState({ calLoading: false, calError: 'Não foi possível carregar os lembretes. Tente novamente.' });
+  }
+  // Auto-guardado (token + aba oculta) para poder ser chamado tanto no polling de 75s
+  // quanto em qualquer outro ponto sem precisar duplicar a checagem.
+  async loadMaintenanceCount() {
+    if (!this.state.adminToken || document.hidden) return;
+    const r = await this.adminFetch('/api/admin/maintenance-reminders/count');
+    if (!this.state.adminToken) return;
+    if (r.ok && r.data && typeof r.data.count === 'number') this.setState({ calMaintCount: r.data.count });
+  }
+  calGoToMonth(monthKey) {
+    this.setState({ calDayListDate: null });
+    this.loadMaintenanceReminders(monthKey);
+  }
+  calPrevMonth() { this.calGoToMonth(this.addMonthsToKey(this.state.calMonthKey, -1)); }
+  calNextMonth() { this.calGoToMonth(this.addMonthsToKey(this.state.calMonthKey, 1)); }
+  calGoToday() { this.calGoToMonth(this.spToday().slice(0, 7)); }
+  openCalDay(dateKey, items) {
+    if (items.length === 1) { this.openCalDetail(items[0]); return; }
+    this.setState({ calDayListDate: dateKey });
+  }
+  closeCalDayList() { this.setState({ calDayListDate: null }); }
+  openCalDetail(item) { this.setState({ calDetail: item, calDetailActionError: null, calDayListDate: null }); }
+  closeCalDetail() { this.setState({ calDetail: null, calDetailActionError: null }); }
+  // O agendamento de origem pode ter sido cancelado enquanto o lembrete estava na tela —
+  // nesse caso a API devolve 404 e o certo é tratar como "esse lembrete não vale mais",
+  // não como um erro técnico.
+  async patchMaintenanceReminder(id, status) {
+    if (this.state.calDetailActionLoading) return;
+    this.setState({ calDetailActionLoading: true, calDetailActionError: null });
+    const r = await this.adminFetch('/api/admin/maintenance-reminders/' + id, {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status }),
+    });
+    if (r.ok) {
+      this.setState({ calDetailActionLoading: false, calDetail: null });
+      this.toast(status === 'avisado' ? 'Cliente marcada como avisada.' : 'Lembrete dispensado.');
+      this.loadMaintenanceReminders(this.state.calMonthKey);
+      this.loadMaintenanceCount();
+      return;
+    }
+    if (r.status === 404) {
+      this.setState({ calDetailActionLoading: false, calDetail: null });
+      this.toast('Esse lembrete não é mais válido — o agendamento original foi cancelado.');
+      this.loadMaintenanceReminders(this.state.calMonthKey);
+      this.loadMaintenanceCount();
+      return;
+    }
+    const msg = (r.data && r.data.message) || 'Não foi possível atualizar. Tente novamente.';
+    this.setState({ calDetailActionLoading: false, calDetailActionError: msg });
+  }
+  markReminderAvisado(id) { this.patchMaintenanceReminder(id, 'avisado'); }
+  dismissReminder(id) { this.patchMaintenanceReminder(id, 'dispensado'); }
+  mapCalChip(r) {
+    const meta = REMINDER_STATUS_META[r.status] || REMINDER_STATUS_META.pendente;
+    const firstName = (r.clientName || '').trim().split(/\s+/)[0] || '—';
+    return {
+      label: firstName + (r.serviceName ? (' · ' + r.serviceName) : ''),
+      style: 'font-size:8.5px;font-weight:700;line-height:1.3;padding:1px 4px;border-radius:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;background:' + meta.bg + ';color:' + meta.color,
+    };
+  }
+  buildCalWeeks(monthKey, reminders) {
+    if (!monthKey) return [];
+    const [y, m] = monthKey.split('-').map(Number);
+    const startOffset = new Date(y, m - 1, 1).getDay();
+    const daysInMonth = new Date(y, m, 0).getDate();
+    const todayKey = this.spToday();
+    const byDate = {};
+    (reminders || []).forEach((r) => {
+      if (!r.dueDate) return;
+      (byDate[r.dueDate] = byDate[r.dueDate] || []).push(r);
+    });
+    const totalCells = Math.ceil((startOffset + daysInMonth) / 7) * 7;
+    const cells = [];
+    for (let i = 0; i < totalCells; i++) {
+      const dayNum = i - startOffset + 1;
+      if (dayNum < 1 || dayNum > daysInMonth) {
+        cells.push({ key: 'pad' + i, inMonth: false, dayNum: '', hasItems: false, chips: [], hasOverflow: false, overflowCount: 0, cellStyle: 'min-height:58px;border-radius:10px', numStyle: '', onClick: null });
+        continue;
+      }
+      const dateKey = monthKey + '-' + String(dayNum).padStart(2, '0');
+      const items = (byDate[dateKey] || []).slice().sort((a, b) => (a.clientName || '').localeCompare(b.clientName || ''));
+      const isToday = dateKey === todayKey;
+      const visible = items.slice(0, 2);
+      const overflowCount = items.length - visible.length;
+      cells.push({
+        key: dateKey, inMonth: true, dayNum: String(dayNum), dateKey,
+        hasItems: items.length > 0, hasOverflow: overflowCount > 0, overflowCount,
+        chips: visible.map((r) => this.mapCalChip(r)),
+        cellStyle: 'min-height:58px;border-radius:10px;padding:3px 2px 4px;display:flex;flex-direction:column;align-items:center;cursor:' + (items.length ? 'pointer' : 'default') + ';background:' + (isToday ? '#FBEFF1' : 'transparent') + ';border:1px solid ' + (isToday ? 'rgba(197,107,130,.35)' : 'transparent'),
+        numStyle: 'font-size:11.5px;font-weight:' + (isToday ? '700' : '600') + ';color:' + (isToday ? '#C56B82' : '#5A2E3A'),
+        onClick: items.length ? (() => this.openCalDay(dateKey, items)) : null,
+      });
+    }
+    const weeks = [];
+    for (let i = 0; i < cells.length; i += 7) weeks.push({ key: 'w' + i, days: cells.slice(i, i + 7) });
+    return weeks;
   }
 
   mapApptCard(a, showDate) {
@@ -1705,7 +1952,8 @@ class Component extends DCLogic {
   startRecentPoll() {
     this.stopRecentPoll();
     this.pollRecentAppointments();
-    this._recentPollTimer = setInterval(() => this.pollRecentAppointments(), 75000);
+    this.loadMaintenanceCount();
+    this._recentPollTimer = setInterval(() => { this.pollRecentAppointments(); this.loadMaintenanceCount(); }, 75000);
   }
   stopRecentPoll() {
     if (this._recentPollTimer) { clearInterval(this._recentPollTimer); this._recentPollTimer = null; }
@@ -1743,6 +1991,7 @@ class Component extends DCLogic {
       this.loadBlockedDays();
       this.loadBlockedSlots(dateKey);
       this.loadSettings();
+      this.loadMaintenanceReminders(this.state.calMonthKey || dateKey.slice(0, 7));
       this.startRecentPoll();
       return;
     }
@@ -1753,7 +2002,7 @@ class Component extends DCLogic {
   doLogoutAdmin() {
     try { localStorage.removeItem('lgb_admin_token'); } catch (e) {}
     this.stopRecentPoll();
-    this.setState({ adminToken: null, loginUser: '', loginPass: '', adminMenuOpen: false, adminAppts: [], recentItems: [], recentPanelOpen: false });
+    this.setState({ adminToken: null, loginUser: '', loginPass: '', adminMenuOpen: false, adminAppts: [], recentItems: [], recentPanelOpen: false, calReminders: [], calLoaded: false, calMaintCount: 0, calDayListDate: null, calDetail: null });
   }
 
   async loadAdminAppointments(dateKey) {
@@ -2208,6 +2457,30 @@ class Component extends DCLogic {
       };
     });
 
+    // calendário de manutenção
+    const calWeeks = this.buildCalWeeks(s.calMonthKey, s.calReminders);
+    const calMonthLabel = this.monthKeyLabel(s.calMonthKey);
+    const calReady = !s.calLoading && !s.calError;
+    const calEmpty = calReady && (s.calReminders || []).length === 0;
+    const calDayListRaw = s.calDayListDate ? (s.calReminders || []).filter((r) => r.dueDate === s.calDayListDate) : [];
+    const calDayListItems = calDayListRaw.slice().sort((a, b) => (a.clientName || '').localeCompare(b.clientName || '')).map((r) => {
+      const meta = REMINDER_STATUS_META[r.status] || REMINDER_STATUS_META.pendente;
+      return {
+        id: r.id,
+        client: r.clientName || '—',
+        service: r.serviceName || '',
+        statusLabel: meta.label,
+        statusStyle: 'font-size:9.5px;font-weight:600;padding:2px 7px;border-radius:999px;color:' + meta.color + ';background:' + meta.bg,
+        open: () => this.openCalDetail(r),
+      };
+    });
+    const cd = s.calDetail;
+    const cdMeta = cd ? (REMINDER_STATUS_META[cd.status] || REMINDER_STATUS_META.pendente) : null;
+    const cdHasMessage = !!(cd && cd.message);
+    const cdWaLink = cd ? ('https://wa.me/' + (cd.clientPhone || '').replace(/\D/g, '') + (cdHasMessage ? ('?text=' + encodeURIComponent(cd.message)) : '')) : '';
+    const cdBusy = s.calDetailActionLoading;
+    const cdBtnBase = 'cursor:' + (cdBusy ? 'not-allowed' : 'pointer') + ';border:0;font-size:12px;font-weight:600;padding:11px 14px;border-radius:999px;flex:1;opacity:' + (cdBusy ? '.6' : '1');
+
     const ct = s.cancelTarget;
     const rr = s.resched;
     let reschedServices = [], reschedTimes = [], reschedServiceNames = '';
@@ -2330,21 +2603,24 @@ class Component extends DCLogic {
 
       // bottom nav
       navAgendaStyle: 'flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:11px 0 9px;cursor:pointer;border:0;background:transparent;color:' + (s.adminTab === 'agenda' ? '#C56B82' : '#A8949B'),
+      navCalendarioStyle: 'flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:11px 0 9px;cursor:pointer;border:0;background:transparent;color:' + (s.adminTab === 'calendario' ? '#C56B82' : '#A8949B'),
       navServicosStyle: 'flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:11px 0 9px;cursor:pointer;border:0;background:transparent;color:' + (s.adminTab === 'servicos' ? '#C56B82' : '#A8949B'),
       navExtrasStyle: 'flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:11px 0 9px;cursor:pointer;border:0;background:transparent;color:' + (s.adminTab === 'extras' ? '#C56B82' : '#A8949B'),
       navNovoStyle: 'flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:11px 0 9px;cursor:pointer;border:0;background:transparent;color:#A8949B',
-      navAgendaIcon: '🗓️', navServicosIcon: '💅', navExtrasIcon: '⚙️',
+      navAgendaIcon: '🗓️', navCalendarioIcon: '📅', navServicosIcon: '💅', navExtrasIcon: '⚙️',
       recentBadgeVisible: recentPanelItems.length > 0,
       recentBadgeLabel: recentPanelItems.length > 9 ? '9+' : String(recentPanelItems.length),
       closeRecentPanel: () => this.closeRecentPanel(),
       recentPanelOpen: !!s.recentPanelOpen,
       recentPanelItems,
       recentPanelEmpty: recentPanelItems.length === 0,
+      calBadgeVisible: (s.calMaintCount || 0) > 0,
+      calBadgeLabel: (s.calMaintCount || 0) > 9 ? '9+' : String(s.calMaintCount || 0),
 
       // admin tabs
-      adminTab: s.adminTab, adminTabAgenda: s.adminTab === 'agenda', adminTabServicos: s.adminTab === 'servicos', adminTabExtras: s.adminTab === 'extras',
-      adminTabHint: s.adminTab === 'servicos' ? 'Serviços' : (s.adminTab === 'extras' ? 'Extras' : this.dateKeyLabel(s.adminDate)),
-      goAdminTabAgenda: () => this.goAdminTab('agenda'), goAdminTabServicos: () => this.goAdminTab('servicos'), goAdminTabExtras: () => this.goAdminTab('extras'),
+      adminTab: s.adminTab, adminTabAgenda: s.adminTab === 'agenda', adminTabServicos: s.adminTab === 'servicos', adminTabExtras: s.adminTab === 'extras', adminTabCalendario: s.adminTab === 'calendario',
+      adminTabHint: s.adminTab === 'servicos' ? 'Serviços' : (s.adminTab === 'extras' ? 'Extras' : (s.adminTab === 'calendario' ? 'Calendário' : this.dateKeyLabel(s.adminDate))),
+      goAdminTabAgenda: () => this.goAdminTab('agenda'), goAdminTabServicos: () => this.goAdminTab('servicos'), goAdminTabExtras: () => this.goAdminTab('extras'), goAdminTabCalendario: () => this.goAdminTab('calendario'),
       tabAgendaStyle: 'cursor:pointer;border:0;font-size:12px;font-weight:600;padding:8px 16px;border-radius:999px;' + (s.adminTab !== 'servicos' ? 'background:#C56B82;color:#fff' : 'background:#F3E9EA;color:#8A7078'),
       tabServicosStyle: 'cursor:pointer;border:0;font-size:12px;font-weight:600;padding:8px 16px;border-radius:999px;' + (s.adminTab === 'servicos' ? 'background:#C56B82;color:#fff' : 'background:#F3E9EA;color:#8A7078'),
 
@@ -2457,6 +2733,36 @@ class Component extends DCLogic {
       reschedConfirmStyle: reschedConfirmStyleVal,
       reschedConfirmLabel: rr && rr.submitLoading ? 'Confirmando...' : 'Confirmar reagendamento',
       closeResched: () => this.closeResched(),
+
+      // calendário de manutenção
+      calMonthLabel, calWeeks,
+      calNotCurrentMonth: s.calMonthKey !== this.spToday().slice(0, 7),
+      calPrevMonth: () => this.calPrevMonth(),
+      calNextMonth: () => this.calNextMonth(),
+      calGoToday: () => this.calGoToday(),
+      calWeekdayLabels: ['D', 'S', 'T', 'Q', 'Q', 'S', 'S'],
+      calLoading: s.calLoading, calError: s.calError, calReady, calEmpty,
+      calDayListOpen: !!s.calDayListDate,
+      calDayListDateLabel: s.calDayListDate ? this.dateKeyLabel(s.calDayListDate) : '',
+      calDayListItems,
+      closeCalDayList: () => this.closeCalDayList(),
+      calDetailOpen: !!cd,
+      calDetailClient: cd ? (cd.clientName || '—') : '',
+      calDetailService: cd ? (cd.serviceName || '') : '',
+      calDetailDueLabel: cd && cd.dueDate ? this.dateKeyLabel(cd.dueDate) : '',
+      calDetailStatusLabel: cdMeta ? cdMeta.label : '',
+      calDetailStatusStyle: cdMeta ? ('font-size:10px;font-weight:600;padding:2px 8px;border-radius:999px;color:' + cdMeta.color + ';background:' + cdMeta.bg) : '',
+      calDetailHasMessage: cdHasMessage,
+      calDetailNoMessage: !!cd && !cdHasMessage,
+      calDetailWaLink: cdWaLink,
+      calDetailError: s.calDetailActionError,
+      closeCalDetail: () => this.closeCalDetail(),
+      markReminderAvisado: () => cd && this.markReminderAvisado(cd.id),
+      dismissReminder: () => cd && this.dismissReminder(cd.id),
+      calDetailAvisarBtnStyle: cdBtnBase + ';background:#C56B82;color:#fff',
+      calDetailDispensarBtnStyle: cdBtnBase + ';background:#F3E9EA;color:#8A7078',
+      calDetailAvisarLabel: cdBusy ? 'Aguarde...' : 'Já avisei',
+      calDetailDispensarLabel: cdBusy ? 'Aguarde...' : 'Dispensar',
 
       toast: s.toast,
     };
