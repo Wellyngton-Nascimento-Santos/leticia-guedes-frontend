@@ -1193,6 +1193,14 @@ const NAME_TO_PHOTO = {
   'Volume Angel Marrom': { img: window.__resources?.img_volume_angel_marrom, photo: 'foto — volume angel marrom' },
 };
 const genericPhotoFor = (name) => ({ img: '', photo: 'foto — ' + name });
+// Espelha src/utils/phone.js do backend. Decide pelo COMPRIMENTO, nunca pelo prefixo —
+// um DDD 55 (Rio Grande do Sul) faria uma regra por prefixo cortar um número válido.
+function normalizePhone(phone) {
+  const digits = (phone || '').replace(/\D/g, '');
+  if ((digits.length === 13 || digits.length === 12) && digits.slice(0, 2) === '55') return digits.slice(2);
+  return digits;
+}
+function toWhatsAppNumber(phone) { return '55' + normalizePhone(phone); }
 const STATUS_META = {
   confirmado: { label: 'Confirmado', color: '#6E3A47', bg: '#F3E9EA' },
   concluido: { label: 'Concluído', color: '#4A8C6F', bg: '#EAF3EE' },
@@ -1773,7 +1781,7 @@ class Component extends DCLogic {
       statusLabel: meta.label,
       statusStyle: 'font-size:10px;font-weight:600;padding:2px 8px;border-radius:999px;color:' + meta.color + ';background:' + meta.bg,
       cardStyle: 'background:#fff;border:1px solid rgba(110,58,71,.08);border-radius:14px;padding:14px 16px;box-shadow:0 6px 18px -14px rgba(110,58,71,.35);' + (isFinal ? 'opacity:.6' : ''),
-      waLink: 'https://wa.me/' + (a.clientPhone || a.phone || '').replace(/\D/g, ''),
+      waLink: 'https://wa.me/' + toWhatsAppNumber(a.clientPhone || a.phone),
       showActions: !isFinal,
       cancel: () => this.openCancelConfirm({ id: a.id, name: a.clientName || a.client, time }),
       complete: () => this.completeAppt({ id: a.id }),
@@ -2352,7 +2360,7 @@ class Component extends DCLogic {
       id: a.id,
       time: this.spTime(a.startAt),
       client: a.clientName || a.client || '—',
-      waLink: 'https://wa.me/' + (a.clientPhone || a.phone || '').replace(/\D/g, ''),
+      waLink: 'https://wa.me/' + toWhatsAppNumber(a.clientPhone || a.phone),
     })).sort((x, y) => x.time.localeCompare(y.time));
     const blockSlotConfirmBtnStyle = 'cursor:pointer;border:0;background:#C0504D;color:#fff;padding:11px 18px;border-radius:999px;font-family:Montserrat,sans-serif;font-weight:600;font-size:12.5px' + (s.blockSlotActionLoading ? ';opacity:.6' : '');
     const blockSlotConfirmBtnLabel = s.blockSlotActionLoading ? 'Bloqueando...' : 'Bloquear horário';    const blockHasConfirmedWarning = !s.blockCheckLoading && s.blockConfirmedCount != null && s.blockConfirmedCount > 0;
@@ -2361,7 +2369,7 @@ class Component extends DCLogic {
       id: a.id,
       time: this.spTime(a.startAt),
       client: a.clientName || a.client || '—',
-      waLink: 'https://wa.me/' + (a.clientPhone || a.phone || '').replace(/\D/g, ''),
+      waLink: 'https://wa.me/' + toWhatsAppNumber(a.clientPhone || a.phone),
     })).sort((x, y) => x.time.localeCompare(y.time));
     const blockConfirmBusy = s.blockActionLoading || s.blockCheckLoading;
     const blockConfirmBtnStyle = 'cursor:' + (blockConfirmBusy ? 'not-allowed' : 'pointer') + ';border:0;background:#C0504D;color:#fff;padding:11px 18px;border-radius:999px;font-family:Montserrat,sans-serif;font-weight:600;font-size:12.5px;opacity:' + (blockConfirmBusy ? '.7' : '1');
@@ -2410,7 +2418,7 @@ class Component extends DCLogic {
         time: c.startTime || c.time || (c.startAt ? this.spTime(c.startAt) : ''),
         client: c.clientName || c.client || '—',
         serviceLabel: service ? (' · ' + service) : '',
-        waLink: 'https://wa.me/' + (c.clientPhone || c.phone || c.whatsapp || '').replace(/\D/g, ''),
+        waLink: 'https://wa.me/' + toWhatsAppNumber(c.clientPhone || c.phone || c.whatsapp),
       };
     }).sort((x, y) => (x.time || '').localeCompare(y.time || '')) : [];
     const novoHasConflicts = novoConflictList.length > 0;
@@ -2477,7 +2485,7 @@ class Component extends DCLogic {
     const cd = s.calDetail;
     const cdMeta = cd ? (REMINDER_STATUS_META[cd.status] || REMINDER_STATUS_META.pendente) : null;
     const cdHasMessage = !!(cd && cd.message);
-    const cdWaLink = cd ? ('https://wa.me/' + (cd.clientPhone || '').replace(/\D/g, '') + (cdHasMessage ? ('?text=' + encodeURIComponent(cd.message)) : '')) : '';
+    const cdWaLink = cd ? ('https://wa.me/' + toWhatsAppNumber(cd.clientPhone) + (cdHasMessage ? ('?text=' + encodeURIComponent(cd.message)) : '')) : '';
     const cdBusy = s.calDetailActionLoading;
     const cdBtnBase = 'cursor:' + (cdBusy ? 'not-allowed' : 'pointer') + ';border:0;font-size:12px;font-weight:600;padding:11px 14px;border-radius:999px;flex:1;opacity:' + (cdBusy ? '.6' : '1');
 
