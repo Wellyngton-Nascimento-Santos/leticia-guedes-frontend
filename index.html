@@ -614,7 +614,9 @@
             </div>
             <sc-if value="{{ a.showActions }}" hint-placeholder-val="{{ false }}">
             <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;padding-left:66px">
+              <sc-if value="{{ a.hasWhatsApp }}" hint-placeholder-val="{{ true }}">
               <a href="{{ a.waLink }}" target="_blank" class="lgb-btn" style="font-size:11px;font-weight:600;color:#4A8C6F;background:#EAF3EE;padding:7px 12px;border-radius:999px">WhatsApp</a>
+              </sc-if>
               <button sc-camel-on-click="{{ a.reschedule }}" class="lgb-btn" style="font-size:11px;font-weight:600;color:#6E3A47;background:#F3E9EA;padding:7px 12px;border-radius:999px">Reagendar</button>
               <button sc-camel-on-click="{{ a.complete }}" class="lgb-btn" style="font-size:11px;font-weight:600;color:#6E3A47;background:#F3E9EA;padding:7px 12px;border-radius:999px">Concluir</button>
               <button sc-camel-on-click="{{ a.cancel }}" class="lgb-btn" style="font-size:11px;font-weight:600;color:#6E3A47;background:#F3E9EA;padding:7px 12px;border-radius:999px">Cancelar</button>
@@ -820,11 +822,16 @@
         <div style="font-size:12px;font-weight:600;color:#C0504D;background:#FBEAEA;border-radius:8px;padding:9px 12px;margin-bottom:14px">{{ calDetailError }}</div>
         </sc-if>
 
+        <sc-if value="{{ calDetailNoPhone }}" hint-placeholder-val="{{ false }}">
+        <div style="text-align:center;padding:13px;border-radius:999px;background:#F3E9EA;color:#A8949B;font-size:12.5px;font-weight:600;margin-bottom:10px">Telefone não cadastrado</div>
+        </sc-if>
+        <sc-if value="{{ calDetailHasPhone }}" hint-placeholder-val="{{ true }}">
         <sc-if value="{{ calDetailHasMessage }}" hint-placeholder-val="{{ true }}">
         <a href="{{ calDetailWaLink }}" target="_blank" class="lgb-btn" style="display:flex;align-items:center;justify-content:center;gap:8px;width:100%;cursor:pointer;border:0;background:#4A8C6F;color:#fff;padding:13px;border-radius:999px;font-size:13px;font-weight:600;margin-bottom:10px">💬 Chamar no WhatsApp</a>
         </sc-if>
         <sc-if value="{{ calDetailNoMessage }}" hint-placeholder-val="{{ false }}">
         <div style="text-align:center;padding:13px;border-radius:999px;background:#F3E9EA;color:#A8949B;font-size:12.5px;font-weight:600;margin-bottom:10px">Mensagem não configurada para este serviço</div>
+        </sc-if>
         </sc-if>
 
         <div style="display:flex;gap:8px;margin-bottom:8px">
@@ -910,7 +917,9 @@
           <sc-for list="{{ blockConfirmedList }}" as="bc" hint-placeholder-count="2">
             <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;background:#FBF2F1;border:1px solid rgba(110,58,71,.08);border-radius:9px;padding:8px 10px">
               <span style="font-size:12.5px;color:#43333A;min-width:0"><strong style="color:#6E3A47">{{ bc.time }}</strong> · {{ bc.client }}</span>
+              <sc-if value="{{ bc.hasWhatsApp }}" hint-placeholder-val="{{ true }}">
               <a href="{{ bc.waLink }}" target="_blank" class="lgb-btn" style="flex-shrink:0;font-size:11px;font-weight:600;color:#4A8C6F;background:#EAF3EE;padding:7px 12px;border-radius:999px">WhatsApp</a>
+              </sc-if>
             </div>
           </sc-for>
         </div>
@@ -944,7 +953,9 @@
           <sc-for list="{{ blockSlotConflictList }}" as="bc" hint-placeholder-count="2">
             <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;background:#FBF2F1;border:1px solid rgba(110,58,71,.08);border-radius:9px;padding:8px 10px">
               <span style="font-size:12.5px;color:#43333A;min-width:0"><strong style="color:#6E3A47">{{ bc.time }}</strong> · {{ bc.client }}</span>
+              <sc-if value="{{ bc.hasWhatsApp }}" hint-placeholder-val="{{ true }}">
               <a href="{{ bc.waLink }}" target="_blank" class="lgb-btn" style="flex-shrink:0;font-size:11px;font-weight:600;color:#4A8C6F;background:#EAF3EE;padding:7px 12px;border-radius:999px">WhatsApp</a>
+              </sc-if>
             </div>
           </sc-for>
         </div>
@@ -1126,7 +1137,9 @@
                 <sc-for list="{{ novoConflictList }}" as="nc" hint-placeholder-count="2">
                   <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;background:#FBF2F1;border:1px solid rgba(110,58,71,.08);border-radius:9px;padding:8px 10px">
                     <span style="font-size:12.5px;color:#43333A;min-width:0"><strong style="color:#6E3A47">{{ nc.time }}</strong> · {{ nc.client }}{{ nc.serviceLabel }}</span>
+                    <sc-if value="{{ nc.hasWhatsApp }}" hint-placeholder-val="{{ true }}">
                     <a href="{{ nc.waLink }}" target="_blank" class="lgb-btn" style="flex-shrink:0;font-size:11px;font-weight:600;color:#4A8C6F;background:#EAF3EE;padding:7px 12px;border-radius:999px">WhatsApp</a>
+                    </sc-if>
                   </div>
                 </sc-for>
               </div>
@@ -1200,7 +1213,12 @@ function normalizePhone(phone) {
   if ((digits.length === 13 || digits.length === 12) && digits.slice(0, 2) === '55') return digits.slice(2);
   return digits;
 }
-function toWhatsAppNumber(phone) { return '55' + normalizePhone(phone); }
+// Sem dígito nenhum não é "cliente sem código de país" — é cliente sem telefone.
+// Prefixar 55 nesse caso gera um link https://wa.me/55 quebrado.
+function toWhatsAppNumber(phone) {
+  const local = normalizePhone(phone);
+  return local ? ('55' + local) : '';
+}
 const STATUS_META = {
   confirmado: { label: 'Confirmado', color: '#6E3A47', bg: '#F3E9EA' },
   concluido: { label: 'Concluído', color: '#4A8C6F', bg: '#EAF3EE' },
@@ -1781,6 +1799,7 @@ class Component extends DCLogic {
       statusLabel: meta.label,
       statusStyle: 'font-size:10px;font-weight:600;padding:2px 8px;border-radius:999px;color:' + meta.color + ';background:' + meta.bg,
       cardStyle: 'background:#fff;border:1px solid rgba(110,58,71,.08);border-radius:14px;padding:14px 16px;box-shadow:0 6px 18px -14px rgba(110,58,71,.35);' + (isFinal ? 'opacity:.6' : ''),
+      hasWhatsApp: !!toWhatsAppNumber(a.clientPhone || a.phone),
       waLink: 'https://wa.me/' + toWhatsAppNumber(a.clientPhone || a.phone),
       showActions: !isFinal,
       cancel: () => this.openCancelConfirm({ id: a.id, name: a.clientName || a.client, time }),
@@ -2360,6 +2379,7 @@ class Component extends DCLogic {
       id: a.id,
       time: this.spTime(a.startAt),
       client: a.clientName || a.client || '—',
+      hasWhatsApp: !!toWhatsAppNumber(a.clientPhone || a.phone),
       waLink: 'https://wa.me/' + toWhatsAppNumber(a.clientPhone || a.phone),
     })).sort((x, y) => x.time.localeCompare(y.time));
     const blockSlotConfirmBtnStyle = 'cursor:pointer;border:0;background:#C0504D;color:#fff;padding:11px 18px;border-radius:999px;font-family:Montserrat,sans-serif;font-weight:600;font-size:12.5px' + (s.blockSlotActionLoading ? ';opacity:.6' : '');
@@ -2369,6 +2389,7 @@ class Component extends DCLogic {
       id: a.id,
       time: this.spTime(a.startAt),
       client: a.clientName || a.client || '—',
+      hasWhatsApp: !!toWhatsAppNumber(a.clientPhone || a.phone),
       waLink: 'https://wa.me/' + toWhatsAppNumber(a.clientPhone || a.phone),
     })).sort((x, y) => x.time.localeCompare(y.time));
     const blockConfirmBusy = s.blockActionLoading || s.blockCheckLoading;
@@ -2418,6 +2439,7 @@ class Component extends DCLogic {
         time: c.startTime || c.time || (c.startAt ? this.spTime(c.startAt) : ''),
         client: c.clientName || c.client || '—',
         serviceLabel: service ? (' · ' + service) : '',
+        hasWhatsApp: !!toWhatsAppNumber(c.clientPhone || c.phone || c.whatsapp),
         waLink: 'https://wa.me/' + toWhatsAppNumber(c.clientPhone || c.phone || c.whatsapp),
       };
     }).sort((x, y) => (x.time || '').localeCompare(y.time || '')) : [];
@@ -2485,7 +2507,9 @@ class Component extends DCLogic {
     const cd = s.calDetail;
     const cdMeta = cd ? (REMINDER_STATUS_META[cd.status] || REMINDER_STATUS_META.pendente) : null;
     const cdHasMessage = !!(cd && cd.message);
-    const cdWaLink = cd ? ('https://wa.me/' + toWhatsAppNumber(cd.clientPhone) + (cdHasMessage ? ('?text=' + encodeURIComponent(cd.message)) : '')) : '';
+    const cdWaNumber = cd ? toWhatsAppNumber(cd.clientPhone) : '';
+    const cdHasPhone = !!cdWaNumber;
+    const cdWaLink = cdHasPhone ? ('https://wa.me/' + cdWaNumber + (cdHasMessage ? ('?text=' + encodeURIComponent(cd.message)) : '')) : '';
     const cdBusy = s.calDetailActionLoading;
     const cdBtnBase = 'cursor:' + (cdBusy ? 'not-allowed' : 'pointer') + ';border:0;font-size:12px;font-weight:600;padding:11px 14px;border-radius:999px;flex:1;opacity:' + (cdBusy ? '.6' : '1');
 
@@ -2760,6 +2784,8 @@ class Component extends DCLogic {
       calDetailDueLabel: cd && cd.dueDate ? this.dateKeyLabel(cd.dueDate) : '',
       calDetailStatusLabel: cdMeta ? cdMeta.label : '',
       calDetailStatusStyle: cdMeta ? ('font-size:10px;font-weight:600;padding:2px 8px;border-radius:999px;color:' + cdMeta.color + ';background:' + cdMeta.bg) : '',
+      calDetailHasPhone: cdHasPhone,
+      calDetailNoPhone: !!cd && !cdHasPhone,
       calDetailHasMessage: cdHasMessage,
       calDetailNoMessage: !!cd && !cdHasMessage,
       calDetailWaLink: cdWaLink,
